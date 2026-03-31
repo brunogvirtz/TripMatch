@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,7 +16,25 @@ import Swipe from "@/pages/groups/swipe";
 import Results from "@/pages/groups/results";
 import Plan from "@/pages/groups/plan";
 
+import { useSession } from "@/hooks/use-session";
+import { setExtraHeaders, clearExtraHeaders } from "@workspace/api-client-react";
+
 const queryClient = new QueryClient();
+
+function SessionHeaderSync() {
+  const { session, isLoaded } = useSession();
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (session?.id) {
+      setExtraHeaders({ "x-user-id": String(session.id) });
+    } else {
+      clearExtraHeaders();
+    }
+  }, [session, isLoaded]);
+
+  return null;
+}
 
 function Router() {
   return (
@@ -40,6 +59,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <SessionHeaderSync />
           <Router />
         </WouterRouter>
         <Toaster />

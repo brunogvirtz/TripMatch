@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useSession } from "@/hooks/use-session";
-import { useCreateGroup } from "@workspace/api-client-react";
+import {
+  useCreateGroup,
+  getListGroupsQueryKey,
+  getGetDashboardQueryKey,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Layout } from "@/components/layout";
@@ -14,22 +19,28 @@ export default function NewGroup() {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const createGroup = useCreateGroup();
+  const queryClient = useQueryClient();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !session) return;
-    
-    createGroup.mutate({
-      data: {
-        name: name.trim(),
-        description: desc.trim() || null,
-        userId: session.id
+
+    createGroup.mutate(
+      {
+        data: {
+          name: name.trim(),
+          description: desc.trim() || null,
+          userId: session.id,
+        },
+      },
+      {
+        onSuccess: (group) => {
+          queryClient.invalidateQueries({ queryKey: getListGroupsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+          setLocation(`/groups/${group.id}`);
+        },
       }
-    }, {
-      onSuccess: (group) => {
-        setLocation(`/groups/${group.id}`);
-      }
-    });
+    );
   };
 
   return (
@@ -42,41 +53,45 @@ export default function NewGroup() {
           <h1 className="text-4xl font-black mb-3">Create Trip</h1>
           <p className="text-muted-foreground text-lg">Give your trip a name to get started.</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground ml-1">Trip Name</label>
-            <Input 
+            <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground ml-1">
+              Trip Name
+            </label>
+            <Input
               autoFocus
-              placeholder="e.g. Summer in Europe..." 
-              value={name} 
-              onChange={(e) => setName(e.target.value)} 
+              placeholder="e.g. Summer in Europe..."
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="h-14 text-lg px-5 rounded-2xl bg-card border-border/50 focus-visible:ring-primary shadow-sm"
             />
           </div>
-          
+
           <div className="space-y-2">
-            <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground ml-1">Description (Optional)</label>
-            <Textarea 
-              placeholder="Any specific goals for this trip?" 
-              value={desc} 
-              onChange={(e) => setDesc(e.target.value)} 
+            <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground ml-1">
+              Description (Optional)
+            </label>
+            <Textarea
+              placeholder="Any specific goals for this trip?"
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
               className="min-h-[120px] text-base rounded-2xl bg-card border-border/50 resize-none p-5 focus-visible:ring-primary shadow-sm"
             />
           </div>
-          
+
           <div className="pt-6">
-            <Button 
-              type="submit" 
-              size="lg" 
+            <Button
+              type="submit"
+              size="lg"
               className="w-full h-14 text-lg rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-transform"
               disabled={!name.trim() || createGroup.isPending}
             >
               {createGroup.isPending ? "Creating..." : "Create Trip"}
             </Button>
-            <Button 
-              type="button" 
-              variant="ghost" 
+            <Button
+              type="button"
+              variant="ghost"
               className="w-full mt-3 h-14 rounded-2xl font-bold text-muted-foreground"
               onClick={() => setLocation("/dashboard")}
             >
