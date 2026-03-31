@@ -41,7 +41,7 @@ export default function JoinGroup() {
     }
 
     if (groupId === 0) {
-      toast({ title: "Please paste the full invite link", variant: "destructive" });
+      toast({ title: "Pegá el link de invitación completo", variant: "destructive" });
       return;
     }
 
@@ -51,11 +51,11 @@ export default function JoinGroup() {
         onSuccess: (group) => {
           queryClient.invalidateQueries({ queryKey: getListGroupsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
-          toast({ title: "Joined trip successfully!" });
+          toast({ title: "¡Te uniste al viaje!" });
           setLocation(`/groups/${group.id}`);
         },
         onError: () => {
-          toast({ title: "Invalid invite link or code", variant: "destructive" });
+          toast({ title: "Link o código inválido", variant: "destructive" });
         },
       }
     );
@@ -68,9 +68,9 @@ export default function JoinGroup() {
           <div className="w-16 h-16 bg-secondary/10 rounded-2xl flex items-center justify-center mb-6">
             <Ticket className="text-secondary h-8 w-8 rotate-45" />
           </div>
-          <h1 className="text-4xl font-black mb-3">Join Trip</h1>
+          <h1 className="text-4xl font-black mb-3">Unirse al viaje</h1>
           <p className="text-muted-foreground text-lg">
-            Paste the invite link your friend sent you.
+            Pegá el link de invitación que te mandó tu amigo/a.
           </p>
         </div>
 
@@ -78,7 +78,7 @@ export default function JoinGroup() {
           <div className="space-y-2">
             <Input
               autoFocus
-              placeholder="Paste link here..."
+              placeholder="Pegá el link acá..."
               value={code}
               onChange={(e) => setCode(e.target.value)}
               className="h-16 text-lg px-5 rounded-2xl bg-card border-border/50 focus-visible:ring-primary shadow-sm"
@@ -91,7 +91,7 @@ export default function JoinGroup() {
             className="w-full h-14 text-lg rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-transform"
             disabled={!code.trim() || joinGroup.isPending}
           >
-            {joinGroup.isPending ? "Joining..." : "Join Trip"}
+            {joinGroup.isPending ? "Uniéndose..." : "Unirse al viaje"}
           </Button>
 
           <Button
@@ -100,7 +100,7 @@ export default function JoinGroup() {
             className="w-full mt-3 h-14 rounded-2xl font-bold text-muted-foreground"
             onClick={() => setLocation("/dashboard")}
           >
-            Cancel
+            Cancelar
           </Button>
         </form>
       </div>

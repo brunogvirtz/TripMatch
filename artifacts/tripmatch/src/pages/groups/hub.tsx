@@ -51,7 +51,6 @@ export default function GroupHub() {
     if (code) setInviteCode(code);
   }, []);
 
-  // Auto-join if we have a code in the URL and user is not yet a member
   useEffect(() => {
     if (!inviteCode || !session || !group || isMember) return;
     joinGroup.mutate(
@@ -62,7 +61,7 @@ export default function GroupHub() {
           queryClient.invalidateQueries({ queryKey: getListGroupsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
           refetch();
-          toast({ title: "Joined trip!" });
+          toast({ title: "¡Te uniste al viaje!" });
         },
       }
     );
@@ -73,7 +72,7 @@ export default function GroupHub() {
     const url = `${window.location.origin}/groups/${group.id}?code=${group.inviteCode}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
-    toast({ title: "Invite link copied!" });
+    toast({ title: "¡Link de invitación copiado!" });
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -87,7 +86,7 @@ export default function GroupHub() {
           queryClient.invalidateQueries({ queryKey: getListGroupsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
           refetch();
-          toast({ title: "Joined trip!" });
+          toast({ title: "¡Te uniste al viaje!" });
         },
       }
     );
@@ -106,12 +105,11 @@ export default function GroupHub() {
   if (!group) {
     return (
       <Layout>
-        <div className="text-center py-20 text-xl font-bold">Group not found</div>
+        <div className="text-center py-20 text-xl font-bold">Grupo no encontrado</div>
       </Layout>
     );
   }
 
-  // Show join screen if not a member
   if (!isMember) {
     return (
       <Layout>
@@ -121,7 +119,7 @@ export default function GroupHub() {
           </div>
           <h1 className="text-4xl font-black mb-3">{group.name}</h1>
           <p className="text-muted-foreground mb-10 text-lg">
-            You've been invited to join this trip!
+            ¡Te invitaron a unirte a este viaje!
           </p>
           <Button
             size="lg"
@@ -130,9 +128,11 @@ export default function GroupHub() {
             disabled={joinGroup.isPending}
           >
             {joinGroup.isPending ? (
-              <><Loader2 className="animate-spin mr-2 h-5 w-5" /> Joining...</>
+              <>
+                <Loader2 className="animate-spin mr-2 h-5 w-5" /> Uniéndose...
+              </>
             ) : (
-              "Join Trip"
+              "Unirse al viaje"
             )}
           </Button>
           <Button
@@ -140,7 +140,7 @@ export default function GroupHub() {
             className="w-full mt-3 h-14 rounded-2xl font-bold text-muted-foreground"
             onClick={() => setLocation("/dashboard")}
           >
-            Go to Dashboard
+            Ir al inicio
           </Button>
         </div>
       </Layout>
@@ -153,14 +153,12 @@ export default function GroupHub() {
   return (
     <Layout>
       <div className="py-4">
-        {/* Back + header */}
         <div className="flex items-center gap-3 mb-6">
           <Button
             variant="ghost"
             size="sm"
             className="rounded-xl p-2 h-9 w-9 text-muted-foreground hover:text-foreground"
             onClick={() => setLocation("/dashboard")}
-            data-testid="button-back-dashboard"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -171,42 +169,37 @@ export default function GroupHub() {
             )}
           </div>
           <div className="bg-primary/10 text-primary px-3 py-1 rounded-xl text-xs font-black uppercase tracking-widest shrink-0">
-            {group.status}
+            {translateStatus(group.status)}
           </div>
         </div>
 
-        {/* Match results CTA */}
         {hasMatched && (
-          <Card className="p-6 rounded-[24px] bg-accent text-accent-foreground border-none mb-6 shadow-xl shadow-accent/20">
-            <h3 className="font-black text-xl mb-1">Match found!</h3>
-            <p className="text-accent-foreground/80 mb-5 text-sm font-medium">
-              Your group has found a destination.
+          <Card className="p-6 rounded-[24px] bg-primary text-primary-foreground border-none mb-6 shadow-xl shadow-primary/20">
+            <h3 className="font-black text-xl mb-1">¡Hay coincidencia!</h3>
+            <p className="text-primary-foreground/80 mb-5 text-sm font-medium">
+              El grupo eligió un destino.
             </p>
             <div className="flex gap-3">
               <Button
-                className="flex-1 h-12 rounded-xl bg-foreground text-background hover:bg-foreground/80 font-black"
+                className="flex-1 h-12 rounded-xl bg-white text-primary hover:bg-white/90 font-black"
                 onClick={() => setLocation(`/groups/${group.id}/results`)}
-                data-testid="button-view-results"
               >
-                See Results
+                Ver resultados
               </Button>
               <Button
-                className="flex-1 h-12 rounded-xl bg-background/20 text-accent-foreground hover:bg-background/30 font-black border border-accent-foreground/10"
+                className="flex-1 h-12 rounded-xl bg-white/20 text-primary-foreground hover:bg-white/30 font-black border border-white/20"
                 onClick={() => setLocation(`/groups/${group.id}/plan`)}
-                data-testid="button-view-plan"
               >
-                <Map className="mr-2 h-4 w-4" /> Plan
+                <Map className="mr-2 h-4 w-4" /> Planificar
               </Button>
             </div>
           </Card>
         )}
 
-        {/* Step 1: Preferences */}
         {!hasMatched && !me?.hasCompletedPreferences && (
           <Card
             className="p-5 rounded-[24px] border-2 border-primary/20 bg-primary/5 mb-4 cursor-pointer active:scale-[0.99] transition-transform"
             onClick={() => setLocation(`/groups/${group.id}/preferences`)}
-            data-testid="card-preferences-step"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -214,8 +207,10 @@ export default function GroupHub() {
                   1
                 </div>
                 <div>
-                  <div className="font-black text-base">Set Your Preferences</div>
-                  <div className="text-muted-foreground text-sm">Budget, vibes, climate — 1 min</div>
+                  <div className="font-black text-base">Configurar preferencias</div>
+                  <div className="text-muted-foreground text-sm">
+                    Presupuesto, estilo, clima — 1 min
+                  </div>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -226,72 +221,76 @@ export default function GroupHub() {
         {!hasMatched && me?.hasCompletedPreferences && (
           <div className="flex items-center gap-3 px-1 mb-4">
             <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-            <span className="text-sm font-medium text-muted-foreground">Preferences saved</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Preferencias guardadas
+            </span>
             <Button
               variant="ghost"
               size="sm"
               className="ml-auto text-xs h-7 rounded-lg text-muted-foreground hover:text-foreground"
               onClick={() => setLocation(`/groups/${group.id}/preferences`)}
             >
-              Edit
+              Editar
             </Button>
           </div>
         )}
 
-        {/* Step 2: Swipe — always visible once you're a member */}
         {!hasMatched && (
-          <Card className="p-6 rounded-[24px] bg-primary text-primary-foreground border-none mb-6 shadow-xl shadow-primary/20">
+          <Card className="p-6 rounded-[24px] bg-secondary text-secondary-foreground border-none mb-6 shadow-xl shadow-secondary/20">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-black text-sm">
                 2
               </div>
               <h3 className="font-black text-xl">
-                {mySwipeCount > 0 ? "Keep Swiping" : "Start Swiping"}
+                {mySwipeCount > 0 ? "Seguir deslizando" : "¡A deslizar!"}
               </h3>
             </div>
-            <p className="text-primary-foreground/80 mb-5 text-sm font-medium">
+            <p className="text-secondary-foreground/80 mb-5 text-sm font-medium">
               {mySwipeCount > 0
-                ? `You've swiped ${mySwipeCount} destinations. Keep going to improve the match!`
-                : "Swipe on destinations to find what your group agrees on."}
+                ? `Deslizaste ${mySwipeCount} destinos. ¡Seguí para mejorar el match!`
+                : "Deslizá destinos para encontrar lo que el grupo prefiere."}
             </p>
             <Button
-              variant="secondary"
-              className="w-full h-14 rounded-2xl text-secondary-foreground font-black text-lg active:scale-95 transition-transform shadow-lg"
+              variant="default"
+              className="w-full h-14 rounded-2xl bg-white text-secondary hover:bg-white/90 font-black text-lg active:scale-95 transition-transform shadow-lg"
               onClick={() => setLocation(`/groups/${group.id}/swipe`)}
-              data-testid="button-start-swiping"
             >
               <Play className="mr-2 h-5 w-5 fill-current" />
-              {mySwipeCount > 0 ? "Continue Swiping" : "Start Swiping"}
+              {mySwipeCount > 0 ? "Seguir deslizando" : "Empezar a deslizar"}
             </Button>
             {mySwipeCount > 0 && (
               <Button
                 variant="ghost"
-                className="w-full mt-2 h-10 rounded-xl text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/10 font-semibold text-sm"
+                className="w-full mt-2 h-10 rounded-xl text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-white/10 font-semibold text-sm"
                 onClick={() => setLocation(`/groups/${group.id}/results`)}
               >
-                View Current Results
+                Ver resultados actuales
               </Button>
             )}
           </Card>
         )}
 
-        {/* Members */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-black">
-              Members ({group.members.length})
+              Integrantes ({group.members.length})
             </h2>
             <Button
               variant="outline"
               size="sm"
               onClick={handleCopyLink}
               className="rounded-xl font-bold border-2 border-border/50 bg-card h-9 px-3 text-xs"
-              data-testid="button-copy-invite"
             >
               {copied ? (
-                <><Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />Copied</>
+                <>
+                  <Check className="mr-1.5 h-3.5 w-3.5 text-green-500" />
+                  Copiado
+                </>
               ) : (
-                <><Copy className="mr-1.5 h-3.5 w-3.5" />Invite</>
+                <>
+                  <Copy className="mr-1.5 h-3.5 w-3.5" />
+                  Invitar
+                </>
               )}
             </Button>
           </div>
@@ -301,7 +300,6 @@ export default function GroupHub() {
               <div
                 key={member.id}
                 className="flex items-center justify-between p-4 bg-card border border-border/30 rounded-[18px] shadow-sm"
-                data-testid={`card-member-${member.id}`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center font-black text-primary text-sm border border-primary/20 shrink-0">
@@ -311,11 +309,11 @@ export default function GroupHub() {
                     <div className="font-bold text-sm text-foreground">
                       {member.displayName}{" "}
                       {member.userId === session?.id && (
-                        <span className="text-muted-foreground font-normal text-xs">(You)</span>
+                        <span className="text-muted-foreground font-normal text-xs">(vos)</span>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground capitalize flex items-center gap-1 mt-0.5">
-                      {member.role}
+                      {translateRole(member.role)}
                       {member.hasCompletedPreferences && (
                         <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                       )}
@@ -324,8 +322,8 @@ export default function GroupHub() {
                 </div>
                 <div className="text-right shrink-0">
                   {member.swipeCount > 0 && (
-                    <div className="text-xs font-bold text-accent-foreground bg-accent/20 px-2.5 py-1 rounded-lg">
-                      {member.swipeCount} swipes
+                    <div className="text-xs font-bold text-secondary bg-secondary/10 px-2.5 py-1 rounded-lg">
+                      {member.swipeCount} votos
                     </div>
                   )}
                 </div>
@@ -334,10 +332,9 @@ export default function GroupHub() {
           </div>
         </div>
 
-        {/* Invite code display */}
         <div className="bg-muted/50 rounded-2xl p-4 mb-4">
           <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            Invite Code
+            Código de invitación
           </div>
           <div className="flex items-center justify-between gap-3">
             <div className="font-mono font-black text-xl tracking-widest text-foreground">
@@ -348,13 +345,30 @@ export default function GroupHub() {
               variant="outline"
               onClick={handleCopyLink}
               className="rounded-xl h-9 font-bold text-xs shrink-0"
-              data-testid="button-copy-code"
             >
-              {copied ? "Copied!" : "Copy Link"}
+              {copied ? "¡Copiado!" : "Copiar link"}
             </Button>
           </div>
         </div>
       </div>
     </Layout>
   );
+}
+
+function translateStatus(status: string) {
+  const map: Record<string, string> = {
+    pending: "pendiente",
+    swiping: "votando",
+    matched: "con match",
+    planning: "planificando",
+  };
+  return map[status] ?? status;
+}
+
+function translateRole(role: string) {
+  const map: Record<string, string> = {
+    creator: "creador/a",
+    member: "integrante",
+  };
+  return map[role] ?? role;
 }

@@ -50,18 +50,18 @@ export default function NewGroup() {
           <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
             <Map className="text-primary h-8 w-8" />
           </div>
-          <h1 className="text-4xl font-black mb-3">Create Trip</h1>
-          <p className="text-muted-foreground text-lg">Give your trip a name to get started.</p>
+          <h1 className="text-4xl font-black mb-3">Crear viaje</h1>
+          <p className="text-muted-foreground text-lg">Poné un nombre para tu grupo de viaje.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground ml-1">
-              Trip Name
+              Nombre del viaje
             </label>
             <Input
               autoFocus
-              placeholder="e.g. Summer in Europe..."
+              placeholder="ej. Verano en Europa..."
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="h-14 text-lg px-5 rounded-2xl bg-card border-border/50 focus-visible:ring-primary shadow-sm"
@@ -70,10 +70,10 @@ export default function NewGroup() {
 
           <div className="space-y-2">
             <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground ml-1">
-              Description (Optional)
+              Descripción (opcional)
             </label>
             <Textarea
-              placeholder="Any specific goals for this trip?"
+              placeholder="¿Algún objetivo para este viaje?"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
               className="min-h-[120px] text-base rounded-2xl bg-card border-border/50 resize-none p-5 focus-visible:ring-primary shadow-sm"
@@ -87,7 +87,7 @@ export default function NewGroup() {
               className="w-full h-14 text-lg rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-95 transition-transform"
               disabled={!name.trim() || createGroup.isPending}
             >
-              {createGroup.isPending ? "Creating..." : "Create Trip"}
+              {createGroup.isPending ? "Creando..." : "Crear viaje"}
             </Button>
             <Button
               type="button"
@@ -95,7 +95,7 @@ export default function NewGroup() {
               className="w-full mt-3 h-14 rounded-2xl font-bold text-muted-foreground"
               onClick={() => setLocation("/dashboard")}
             >
-              Cancel
+              Cancelar
             </Button>
           </div>
         </form>
