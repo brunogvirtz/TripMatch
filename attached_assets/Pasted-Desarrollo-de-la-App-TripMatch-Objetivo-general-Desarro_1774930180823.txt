@@ -1,0 +1,223 @@
+Desarrollo de la App "TripMatch"
+
+Objetivo general:
+Desarrollar una aplicación mobile que permita a grupos de personas planificar viajes de forma colaborativa mediante un sistema de matching basado en preferencias individuales y un mecanismo de interacción tipo swipe (similar a Tinder). La app debe transformar la toma de decisiones grupales en una experiencia simple, rápida y divertida.
+
+Concepto del producto
+
+La app funciona como un sistema de recomendación grupal. Cada usuario expresa sus preferencias (explícitas e implícitas) y el sistema genera un resultado optimizado que maximiza el consenso del grupo.
+
+El core del producto es:
+
+Matching de preferencias
+
+Interacción tipo swipe
+
+Generación automática de propuestas de viaje
+
+Funcionalidades principales (MVP)
+
+2.1. Autenticación
+
+Login simple (email, Google o Apple)
+
+Creación de usuario
+
+2.2. Creación de grupo
+
+Un usuario crea un “viaje”
+
+Genera un link para invitar a otros
+
+Los usuarios se unen al grupo
+
+2.3. Onboarding de preferencias
+Cada usuario completa un cuestionario breve:
+
+Presupuesto (rango)
+
+Tipo de viaje (playa, cultura, fiesta, naturaleza, etc.)
+
+Fechas disponibles
+
+Preferencias generales
+
+Estas respuestas deben almacenarse como valores numéricos para facilitar el cálculo posterior.
+
+2.4. Sistema de swipe (core feature)
+
+El sistema debe mostrar tarjetas (cards) con:
+
+Destinos
+
+Actividades
+
+Opciones de alojamiento (en etapas posteriores)
+
+Cada usuario puede:
+
+Swipe derecha → like (+1)
+
+Swipe izquierda → dislike (-1)
+
+Superlike → (+2)
+
+Los resultados se almacenan por usuario y por ítem.
+
+2.5. Matching grupal
+
+El sistema debe calcular un score para cada destino basado en:
+
+a) Preferencias declaradas (onboarding)
+b) Interacciones (swipes)
+
+Fórmula base:
+
+score_usuario_destino = suma (preferencias_usuario × atributos_destino)
+
+score_grupal = promedio(score_usuario_destino)
+
+Aplicar penalización por desacuerdo:
+
+score_final = promedio - desviación_estándar
+
+Agregar impacto de swipes:
+
+score_total = score_final + peso_swipes
+
+El sistema debe devolver:
+
+Top 3 destinos
+
+Nivel de consenso (%)
+
+Opciones alternativas
+
+2.6. Resultado y visualización
+
+Mostrar:
+
+“Match grupal”
+
+Ranking de destinos
+
+Explicación simple (ej: “80% del grupo prefiere playa”)
+
+2.7. Plan de viaje (simplificado en MVP)
+
+Generar:
+
+Destino sugerido
+
+Fechas posibles
+
+Lista básica de actividades
+
+(No incluir reservas en MVP)
+
+2.8. Gestión de gastos (fase posterior)
+
+Registro de gastos
+
+División tipo Splitwise
+
+Arquitectura técnica sugerida
+
+Frontend:
+
+React Native (app mobile cross-platform)
+
+Backend:
+
+Node.js con Express o Firebase (preferible para MVP por velocidad)
+
+Base de datos:
+
+Firestore (NoSQL, flexible para iterar rápido)
+
+Estructura de datos (simplificada)
+
+Usuarios:
+
+id
+
+nombre
+
+preferencias (objeto con valores numéricos)
+
+Grupos:
+
+id
+
+usuarios[]
+
+estado
+
+Swipes:
+
+user_id
+
+item_id
+
+valor (-1, 0, +1, +2)
+
+Destinos:
+
+id
+
+atributos (costo, clima, tipo, etc.)
+
+Lógica clave a desarrollar
+
+Normalización de preferencias (todo en escala 0–1)
+
+Motor de scoring
+
+Sistema de agregación grupal
+
+Manejo de conflictos (desviación)
+
+UX/UI (criterios importantes)
+
+Flujo simple (máximo 2–3 pasos para empezar)
+
+Swipe rápido y fluido (sin fricción)
+
+Feedback inmediato (matches grupales)
+
+Diseño mobile-first
+
+Alcance del MVP
+
+Incluir:
+
+Creación de grupos
+
+Onboarding
+
+Swipe
+
+Algoritmo básico
+
+Resultado grupal
+
+Excluir:
+
+Pagos
+
+Reservas
+
+Integraciones complejas
+
+Objetivo del MVP
+
+Validar:
+
+Si los usuarios disfrutan el proceso
+
+Si reduce el tiempo de decisión
+
+Si genera consenso real
+
+Resultado esperado:
+Una app funcional que permita a un grupo de amigos llegar a una decisión de viaje mediante interacción tipo swipe y lógica de matching, priorizando simplicidad, velocidad y experiencia de usuario.

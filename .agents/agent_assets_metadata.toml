@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "_-oXsdtg1HNnFdkfRowLj"
+uri = "file://artifacts/tripmatch/public/destinations/bali.png"
+type = "image"
+title = "Bali tropical beach scene"
+
+[[generated]]
+id = "PvXzisCL3yKLSycaNHlg3"
+uri = "file://artifacts/tripmatch/public/destinations/alps.png"
+type = "image"
+title = "Swiss Alps mountain landscape"
+
+[[generated]]
+id = "LCZKi3_TXz2R878HqGgMd"
+uri = "file://artifacts/tripmatch/public/destinations/tokyo.png"
+type = "image"
+title = "Tokyo neon city street"

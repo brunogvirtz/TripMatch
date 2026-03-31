@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "TripMatch"
+version = "1.0.0"
+id = "artifacts/tripmatch"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24524
+
+[services.development]
+run = "pnpm --filter @workspace/tripmatch run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/tripmatch", "run", "build" ]
+publicDir = "artifacts/tripmatch/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24524"
+BASE_PATH = "/"

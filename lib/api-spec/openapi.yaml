@@ -1,22 +1,32 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: TripMatch API - Group travel planning with swipe-based matching
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User management
+  - name: groups
+    description: Group management
+  - name: trips
+    description: Trip management
+  - name: swipes
+    description: Swipe interactions
+  - name: destinations
+    description: Destination catalog
+  - name: matching
+    description: Matching algorithm results
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +34,355 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+    put:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user profile and preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users:
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create or upsert a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserBody"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /groups:
+    get:
+      operationId: listGroups
+      tags: [groups]
+      summary: List all groups for current user
+      responses:
+        "200":
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+    post:
+      operationId: createGroup
+      tags: [groups]
+      summary: Create a new trip group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupBody"
+      responses:
+        "201":
+          description: Created group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{id}:
+    get:
+      operationId: getGroup
+      tags: [groups]
+      summary: Get group details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Group details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupDetail"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateGroup
+      tags: [groups]
+      summary: Update group details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGroupBody"
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{id}/join:
+    post:
+      operationId: joinGroup
+      tags: [groups]
+      summary: Join a group via invite code
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinGroupBody"
+      responses:
+        "200":
+          description: Joined group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          description: Invalid invite code
+
+  /groups/{id}/members:
+    get:
+      operationId: getGroupMembers
+      tags: [groups]
+      summary: Get all members of a group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GroupMember"
+
+  /groups/{id}/preferences:
+    post:
+      operationId: submitPreferences
+      tags: [groups]
+      summary: Submit user preferences for a trip group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitPreferencesBody"
+      responses:
+        "200":
+          description: Preferences saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupMember"
+
+  /groups/{id}/results:
+    get:
+      operationId: getGroupResults
+      tags: [matching]
+      summary: Get matching results for a group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Matching results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchingResults"
+
+  /groups/{id}/stats:
+    get:
+      operationId: getGroupStats
+      tags: [groups]
+      summary: Get group activity stats (swipe counts, preference completion, top matches)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Group stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupStats"
+
+  /destinations:
+    get:
+      operationId: listDestinations
+      tags: [destinations]
+      summary: List all destinations for swiping
+      responses:
+        "200":
+          description: List of destinations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Destination"
+
+  /destinations/{id}:
+    get:
+      operationId: getDestination
+      tags: [destinations]
+      summary: Get a single destination
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Destination details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Destination"
+        "404":
+          description: Not found
+
+  /swipes:
+    post:
+      operationId: recordSwipe
+      tags: [swipes]
+      summary: Record a swipe on a destination
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordSwipeBody"
+      responses:
+        "201":
+          description: Swipe recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SwipeResult"
+
+  /swipes/group/{groupId}:
+    get:
+      operationId: listGroupSwipes
+      tags: [swipes]
+      summary: List all swipes for a group
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of swipes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Swipe"
+
+  /swipes/user/{groupId}:
+    get:
+      operationId: listUserSwipes
+      tags: [swipes]
+      summary: List current user's swipes in a group
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User's swipes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Swipe"
+
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [users]
+      summary: Get dashboard summary for the current user
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +393,461 @@ components:
       required:
         - status
 
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        preferences:
+          $ref: "#/components/schemas/UserPreferences"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - username
+        - displayName
+        - createdAt
+
+    UserPreferences:
+      type: object
+      properties:
+        budgetMin:
+          type: ["number", "null"]
+        budgetMax:
+          type: ["number", "null"]
+        travelTypes:
+          type: array
+          items:
+            type: string
+        climate:
+          type: ["string", "null"]
+        activityLevel:
+          type: ["string", "null"]
+      required: []
+
+    CreateUserBody:
+      type: object
+      properties:
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+      required:
+        - username
+        - displayName
+
+    UpdateUserBody:
+      type: object
+      properties:
+        displayName:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        preferences:
+          $ref: "#/components/schemas/UserPreferences"
+
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        inviteCode:
+          type: string
+        status:
+          type: string
+          enum: [pending, swiping, matched, planning]
+        memberCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        createdByUserId:
+          type: integer
+      required:
+        - id
+        - name
+        - inviteCode
+        - status
+        - memberCount
+        - createdAt
+        - createdByUserId
+
+    GroupDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        inviteCode:
+          type: string
+        status:
+          type: string
+          enum: [pending, swiping, matched, planning]
+        memberCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        createdByUserId:
+          type: integer
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroupMember"
+        topDestinations:
+          type: array
+          items:
+            $ref: "#/components/schemas/DestinationScore"
+      required:
+        - id
+        - name
+        - inviteCode
+        - status
+        - memberCount
+        - createdAt
+        - createdByUserId
+        - members
+        - topDestinations
+
+    GroupMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        groupId:
+          type: integer
+        role:
+          type: string
+          enum: [creator, member]
+        hasCompletedPreferences:
+          type: boolean
+        swipeCount:
+          type: integer
+        displayName:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        joinedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - groupId
+        - role
+        - hasCompletedPreferences
+        - swipeCount
+        - displayName
+        - joinedAt
+
+    CreateGroupBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        userId:
+          type: integer
+      required:
+        - name
+        - userId
+
+    UpdateGroupBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+
+    JoinGroupBody:
+      type: object
+      properties:
+        inviteCode:
+          type: string
+        userId:
+          type: integer
+      required:
+        - inviteCode
+        - userId
+
+    SubmitPreferencesBody:
+      type: object
+      properties:
+        userId:
+          type: integer
+        budgetMin:
+          type: number
+        budgetMax:
+          type: number
+        travelTypes:
+          type: array
+          items:
+            type: string
+        climate:
+          type: string
+        activityLevel:
+          type: string
+        availableDates:
+          type: ["string", "null"]
+      required:
+        - userId
+        - budgetMin
+        - budgetMax
+        - travelTypes
+        - climate
+        - activityLevel
+
+    Destination:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        country:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        costLevel:
+          type: integer
+          description: "1=budget, 2=mid, 3=luxury"
+        climateType:
+          type: string
+        activityLevel:
+          type: string
+        travelTypes:
+          type: array
+          items:
+            type: string
+        avgRating:
+          type: number
+      required:
+        - id
+        - name
+        - country
+        - description
+        - imageUrl
+        - tags
+        - costLevel
+        - climateType
+        - activityLevel
+        - travelTypes
+        - avgRating
+
+    RecordSwipeBody:
+      type: object
+      properties:
+        userId:
+          type: integer
+        groupId:
+          type: integer
+        destinationId:
+          type: integer
+        value:
+          type: integer
+          description: "-1=dislike, 1=like, 2=superlike"
+      required:
+        - userId
+        - groupId
+        - destinationId
+        - value
+
+    Swipe:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        groupId:
+          type: integer
+        destinationId:
+          type: integer
+        value:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - groupId
+        - destinationId
+        - value
+        - createdAt
+
+    SwipeResult:
+      type: object
+      properties:
+        swipe:
+          $ref: "#/components/schemas/Swipe"
+        updatedScore:
+          $ref: "#/components/schemas/DestinationScore"
+      required:
+        - swipe
+        - updatedScore
+
+    DestinationScore:
+      type: object
+      properties:
+        destinationId:
+          type: integer
+        destinationName:
+          type: string
+        country:
+          type: string
+        imageUrl:
+          type: string
+        groupScore:
+          type: number
+        matchPercentage:
+          type: number
+        consensusLevel:
+          type: string
+          enum: [high, medium, low]
+        likeCount:
+          type: integer
+        dislikeCount:
+          type: integer
+        superlikeCount:
+          type: integer
+        totalVotes:
+          type: integer
+      required:
+        - destinationId
+        - destinationName
+        - country
+        - imageUrl
+        - groupScore
+        - matchPercentage
+        - consensusLevel
+        - likeCount
+        - dislikeCount
+        - superlikeCount
+        - totalVotes
+
+    MatchingResults:
+      type: object
+      properties:
+        groupId:
+          type: integer
+        totalMembers:
+          type: integer
+        membersCompleted:
+          type: integer
+        completionPercent:
+          type: number
+        topDestinations:
+          type: array
+          items:
+            $ref: "#/components/schemas/DestinationScore"
+        consensusSummary:
+          type: string
+        hasEnoughData:
+          type: boolean
+      required:
+        - groupId
+        - totalMembers
+        - membersCompleted
+        - completionPercent
+        - topDestinations
+        - consensusSummary
+        - hasEnoughData
+
+    GroupStats:
+      type: object
+      properties:
+        groupId:
+          type: integer
+        totalSwipes:
+          type: integer
+        membersSwipedCount:
+          type: integer
+        membersPreferencesCount:
+          type: integer
+        topMatch:
+          $ref: "#/components/schemas/DestinationScore"
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityItem"
+      required:
+        - groupId
+        - totalSwipes
+        - membersSwipedCount
+        - membersPreferencesCount
+        - recentActivity
+
+    ActivityItem:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [swipe, join, preference]
+        userId:
+          type: integer
+        displayName:
+          type: string
+        destinationName:
+          type: ["string", "null"]
+        action:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - type
+        - userId
+        - displayName
+        - action
+        - createdAt
+
+    DashboardSummary:
+      type: object
+      properties:
+        userId:
+          type: integer
+        activeGroups:
+          type: integer
+        totalSwipes:
+          type: integer
+        recentGroups:
+          type: array
+          items:
+            $ref: "#/components/schemas/Group"
+        pendingInvites:
+          type: integer
+      required:
+        - userId
+        - activeGroups
+        - totalSwipes
+        - recentGroups
+        - pendingInvites
