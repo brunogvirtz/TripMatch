@@ -7,7 +7,13 @@ import { Card } from "@/components/ui/card";
 import { Layout } from "@/components/layout";
 import { Plus, Users, MapPin, Loader2, Compass } from "lucide-react";
 
-function displayName(user: { firstName: string | null; lastName: string | null; email: string | null } | null): string {
+function displayName(
+  user: {
+    firstName: string | null;
+    lastName: string | null;
+    email: string | null;
+  } | null,
+): string {
   if (!user) return "Viajero";
   const parts = [user.firstName, user.lastName].filter(Boolean);
   if (parts.length > 0) return parts.join(" ");
@@ -37,7 +43,7 @@ export default function Dashboard() {
     <Layout>
       <div className="py-4">
         <h1 className="text-3xl font-black mb-8 tracking-tight">
-          ¡Hola, {displayName(user)}! 👋
+          ¡Hola, {displayName(user)}!
         </h1>
 
         {loadingDash ? (
@@ -45,7 +51,7 @@ export default function Dashboard() {
             <Loader2 className="animate-spin text-primary" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 mb-10">
+          <div className="grid grid-cols-1 gap-4 mb-10">
             <Card className="p-5 rounded-[24px] bg-primary text-primary-foreground border-none shadow-xl shadow-primary/20 relative overflow-hidden">
               <div className="absolute -right-4 -top-4 opacity-10">
                 <Users size={80} />
@@ -55,17 +61,6 @@ export default function Dashboard() {
               </div>
               <div className="text-sm font-bold opacity-90 tracking-wide uppercase">
                 Viajes activos
-              </div>
-            </Card>
-            <Card className="p-5 rounded-[24px] bg-secondary text-secondary-foreground border-none shadow-xl shadow-secondary/20 relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 opacity-10">
-                <Compass size={80} />
-              </div>
-              <div className="text-5xl font-black mb-1 drop-shadow-sm">
-                {dashboard?.totalSwipes || 0}
-              </div>
-              <div className="text-sm font-bold opacity-90 tracking-wide uppercase">
-                Lugares votados
               </div>
             </Card>
           </div>
@@ -102,7 +97,8 @@ export default function Dashboard() {
                     <h3 className="font-bold text-xl">{group.name}</h3>
                     <div className="flex items-center gap-3 mt-2.5 text-sm text-muted-foreground font-medium">
                       <span className="flex items-center gap-1.5">
-                        <Users size={16} className="text-primary" /> {group.memberCount}{" "}
+                        <Users size={16} className="text-primary" />{" "}
+                        {group.memberCount}{" "}
                         {group.memberCount === 1 ? "integrante" : "integrantes"}
                       </span>
                       <span className="capitalize px-2.5 py-0.5 bg-muted rounded-md text-xs font-bold text-foreground">

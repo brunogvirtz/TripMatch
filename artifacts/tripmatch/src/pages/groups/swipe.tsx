@@ -1,10 +1,19 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
-import { useListDestinations, useRecordSwipe, useListUserSwipes } from "@workspace/api-client-react";
+import {
+  useListDestinations,
+  useRecordSwipe,
+  useListUserSwipes,
+} from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout";
-import { motion, useMotionValue, useTransform, useAnimation } from "framer-motion";
+import {
+  motion,
+  useMotionValue,
+  useTransform,
+  useAnimation,
+} from "framer-motion";
 import { X, Heart, Star, MapPin, CheckCircle, ChevronLeft } from "lucide-react";
 
 export default function Swipe() {
@@ -13,15 +22,20 @@ export default function Swipe() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
-  const { data: destinations = [], isLoading: loadingDest } = useListDestinations();
-  const { data: userSwipes = [], isLoading: loadingSwipes, refetch } = useListUserSwipes(groupId, {
+  const { data: destinations = [], isLoading: loadingDest } =
+    useListDestinations();
+  const {
+    data: userSwipes = [],
+    isLoading: loadingSwipes,
+    refetch,
+  } = useListUserSwipes(groupId, {
     query: { enabled: !!groupId && isAuthenticated },
   });
 
   const recordSwipe = useRecordSwipe();
 
   const unswipedDests = destinations.filter(
-    (d) => !userSwipes.some((s) => s.destinationId === d.id)
+    (d) => !userSwipes.some((s) => s.destinationId === d.id),
   );
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -45,7 +59,12 @@ export default function Swipe() {
     if (dir === "right") moveX = 500;
     if (dir === "up") moveY = -500;
 
-    await dragControls.start({ x: moveX, y: moveY, opacity: 0, transition: { duration: 0.3 } });
+    await dragControls.start({
+      x: moveX,
+      y: moveY,
+      opacity: 0,
+      transition: { duration: 0.3 },
+    });
 
     const value = dir === "left" ? -1 : dir === "right" ? 1 : 2;
 
@@ -61,9 +80,8 @@ export default function Swipe() {
         onSuccess: () => {
           dragControls.set({ x: 0, y: 0, opacity: 1 });
           setCurrentIndex((prev) => prev + 1);
-          refetch();
         },
-      }
+      },
     );
   };
 
@@ -91,7 +109,9 @@ export default function Swipe() {
   if (loadingDest || loadingSwipes)
     return (
       <Layout>
-        <div className="flex justify-center p-12 mt-20">Cargando destinos...</div>
+        <div className="flex justify-center p-12 mt-20">
+          Cargando destinos...
+        </div>
       </Layout>
     );
 
