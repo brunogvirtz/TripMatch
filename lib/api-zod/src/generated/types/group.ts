@@ -16,5 +16,5 @@ export interface Group {
   status: GroupStatus;
   memberCount: number;
   createdAt: Date;
-  createdByUserId: number;
+  createdByUserId: string;
 }

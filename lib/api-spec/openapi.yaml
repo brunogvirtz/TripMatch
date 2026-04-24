@@ -9,6 +9,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: Auth
+    description: Browser authentication endpoints.
   - name: users
     description: User management
   - name: groups
@@ -34,6 +36,71 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/user:
+    get:
+      tags: [Auth]
+      operationId: getCurrentAuthUser
+      summary: Get the currently authenticated user
+      parameters:
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '200':
+          description: Auth status resolved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserEnvelope'
+  /login:
+    get:
+      tags: [Auth]
+      operationId: beginBrowserLogin
+      summary: Start the browser OIDC login flow
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          description: Relative path to redirect to after login (must start with `/`). Defaults to `/`.
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to the OIDC authorization endpoint.
+  /callback:
+    get:
+      tags: [Auth]
+      operationId: handleBrowserLoginCallback
+      summary: Complete the browser OIDC login flow
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: iss
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uri
+      responses:
+        '302':
+          description: Redirect to the `returnTo` path on success or `/api/login` on failure.
+  /logout:
+    get:
+      tags: [Auth]
+      operationId: logoutBrowserSession
+      summary: Clear the session and begin OIDC logout
+      parameters:
+        - $ref: '#/components/parameters/SessionCookie'
+      responses:
+        '302':
+          description: Redirect to the OIDC provider logout URL.
 
   /users/me:
     get:
@@ -62,25 +129,6 @@ paths:
       responses:
         "200":
           description: Updated user
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-
-  /users:
-    post:
-      operationId: createUser
-      tags: [users]
-      summary: Create or upsert a user
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateUserBody"
-      responses:
-        "201":
-          description: Created user
           content:
             application/json:
               schema:
@@ -189,6 +237,25 @@ paths:
         "400":
           description: Invalid invite code
 
+  /groups/{id}/leave:
+    post:
+      operationId: leaveGroup
+      tags: [groups]
+      summary: Leave a group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Left group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaveGroupResult"
+
   /groups/{id}/members:
     get:
       operationId: getGroupMembers
@@ -258,7 +325,7 @@ paths:
     get:
       operationId: getGroupStats
       tags: [groups]
-      summary: Get group activity stats (swipe counts, preference completion, top matches)
+      summary: Get group activity stats
       parameters:
         - name: id
           in: path
@@ -384,6 +451,15 @@ paths:
                 $ref: "#/components/schemas/DashboardSummary"
 
 components:
+  parameters:
+    SessionCookie:
+      name: sid
+      in: cookie
+      required: false
+      description: Browser session cookie.
+      schema:
+        type: string
+
   schemas:
     HealthStatus:
       type: object
@@ -393,16 +469,45 @@ components:
       required:
         - status
 
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, profileImageUrl]
+      properties:
+        id:
+          type: string
+        email:
+          type: [string, 'null']
+          format: email
+        firstName:
+          type: [string, 'null']
+        lastName:
+          type: [string, 'null']
+        profileImageUrl:
+          type: [string, 'null']
+
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/AuthUser'
+            - type: 'null'
+
     User:
       type: object
       properties:
         id:
-          type: integer
-        username:
           type: string
+        email:
+          type: ["string", "null"]
+        firstName:
+          type: ["string", "null"]
+        lastName:
+          type: ["string", "null"]
         displayName:
           type: string
-        avatarUrl:
+        profileImageUrl:
           type: ["string", "null"]
         preferences:
           $ref: "#/components/schemas/UserPreferences"
@@ -411,7 +516,6 @@ components:
           format: date-time
       required:
         - id
-        - username
         - displayName
         - createdAt
 
@@ -432,25 +536,12 @@ components:
           type: ["string", "null"]
       required: []
 
-    CreateUserBody:
-      type: object
-      properties:
-        username:
-          type: string
-        displayName:
-          type: string
-        avatarUrl:
-          type: ["string", "null"]
-      required:
-        - username
-        - displayName
-
     UpdateUserBody:
       type: object
       properties:
-        displayName:
+        firstName:
           type: ["string", "null"]
-        avatarUrl:
+        lastName:
           type: ["string", "null"]
         preferences:
           $ref: "#/components/schemas/UserPreferences"
@@ -475,7 +566,7 @@ components:
           type: string
           format: date-time
         createdByUserId:
-          type: integer
+          type: string
       required:
         - id
         - name
@@ -505,7 +596,7 @@ components:
           type: string
           format: date-time
         createdByUserId:
-          type: integer
+          type: string
         members:
           type: array
           items:
@@ -531,7 +622,7 @@ components:
         id:
           type: integer
         userId:
-          type: integer
+          type: string
         groupId:
           type: integer
         role:
@@ -565,11 +656,8 @@ components:
           type: string
         description:
           type: ["string", "null"]
-        userId:
-          type: integer
       required:
         - name
-        - userId
 
     UpdateGroupBody:
       type: object
@@ -586,17 +674,20 @@ components:
       properties:
         inviteCode:
           type: string
-        userId:
-          type: integer
       required:
         - inviteCode
-        - userId
+
+    LeaveGroupResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
 
     SubmitPreferencesBody:
       type: object
       properties:
-        userId:
-          type: integer
         budgetMin:
           type: number
         budgetMax:
@@ -612,7 +703,6 @@ components:
         availableDates:
           type: ["string", "null"]
       required:
-        - userId
         - budgetMin
         - budgetMax
         - travelTypes
@@ -665,8 +755,6 @@ components:
     RecordSwipeBody:
       type: object
       properties:
-        userId:
-          type: integer
         groupId:
           type: integer
         destinationId:
@@ -675,7 +763,6 @@ components:
           type: integer
           description: "-1=dislike, 1=like, 2=superlike"
       required:
-        - userId
         - groupId
         - destinationId
         - value
@@ -686,7 +773,7 @@ components:
         id:
           type: integer
         userId:
-          type: integer
+          type: string
         groupId:
           type: integer
         destinationId:
@@ -813,7 +900,7 @@ components:
           type: string
           enum: [swipe, join, preference]
         userId:
-          type: integer
+          type: string
         displayName:
           type: string
         destinationName:
@@ -834,7 +921,7 @@ components:
       type: object
       properties:
         userId:
-          type: integer
+          type: string
         activeGroups:
           type: integer
         totalSwipes:

@@ -6,9 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface RecordSwipeBody {
-  groupId: number;
-  destinationId: number;
-  /** -1=dislike, 1=like, 2=superlike */
-  value: number;
-}
+export type HandleBrowserLoginCallbackParams = {
+  code?: string;
+  state?: string;
+  iss?: string;
+};

@@ -8,5 +8,4 @@
 
 export interface JoinGroupBody {
   inviteCode: string;
-  userId: number;
 }

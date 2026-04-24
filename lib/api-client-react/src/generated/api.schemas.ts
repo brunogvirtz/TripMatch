@@ -9,6 +9,22 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface AuthUser {
+  id: string;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+  /** @nullable */
+  profileImageUrl: string | null;
+}
+
+export interface AuthUserEnvelope {
+  user: AuthUser | null;
+}
+
 export interface UserPreferences {
   /** @nullable */
   budgetMin?: number | null;
@@ -22,27 +38,25 @@ export interface UserPreferences {
 }
 
 export interface User {
-  id: number;
-  username: string;
+  id: string;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  firstName?: string | null;
+  /** @nullable */
+  lastName?: string | null;
   displayName: string;
   /** @nullable */
-  avatarUrl?: string | null;
+  profileImageUrl?: string | null;
   preferences?: UserPreferences;
   createdAt: string;
 }
 
-export interface CreateUserBody {
-  username: string;
-  displayName: string;
-  /** @nullable */
-  avatarUrl?: string | null;
-}
-
 export interface UpdateUserBody {
   /** @nullable */
-  displayName?: string | null;
+  firstName?: string | null;
   /** @nullable */
-  avatarUrl?: string | null;
+  lastName?: string | null;
   preferences?: UserPreferences;
 }
 
@@ -64,7 +78,7 @@ export interface Group {
   status: GroupStatus;
   memberCount: number;
   createdAt: string;
-  createdByUserId: number;
+  createdByUserId: string;
 }
 
 export type GroupDetailStatus =
@@ -87,7 +101,7 @@ export const GroupMemberRole = {
 
 export interface GroupMember {
   id: number;
-  userId: number;
+  userId: string;
   groupId: number;
   role: GroupMemberRole;
   hasCompletedPreferences: boolean;
@@ -130,7 +144,7 @@ export interface GroupDetail {
   status: GroupDetailStatus;
   memberCount: number;
   createdAt: string;
-  createdByUserId: number;
+  createdByUserId: string;
   members: GroupMember[];
   topDestinations: DestinationScore[];
 }
@@ -139,7 +153,6 @@ export interface CreateGroupBody {
   name: string;
   /** @nullable */
   description?: string | null;
-  userId: number;
 }
 
 export interface UpdateGroupBody {
@@ -153,11 +166,13 @@ export interface UpdateGroupBody {
 
 export interface JoinGroupBody {
   inviteCode: string;
-  userId: number;
+}
+
+export interface LeaveGroupResult {
+  success: boolean;
 }
 
 export interface SubmitPreferencesBody {
-  userId: number;
   budgetMin: number;
   budgetMax: number;
   travelTypes: string[];
@@ -183,7 +198,6 @@ export interface Destination {
 }
 
 export interface RecordSwipeBody {
-  userId: number;
   groupId: number;
   destinationId: number;
   /** -1=dislike, 1=like, 2=superlike */
@@ -192,7 +206,7 @@ export interface RecordSwipeBody {
 
 export interface Swipe {
   id: number;
-  userId: number;
+  userId: string;
   groupId: number;
   destinationId: number;
   value: number;
@@ -225,7 +239,7 @@ export const ActivityItemType = {
 
 export interface ActivityItem {
   type: ActivityItemType;
-  userId: number;
+  userId: string;
   displayName: string;
   /** @nullable */
   destinationName?: string | null;
@@ -243,9 +257,22 @@ export interface GroupStats {
 }
 
 export interface DashboardSummary {
-  userId: number;
+  userId: string;
   activeGroups: number;
   totalSwipes: number;
   recentGroups: Group[];
   pendingInvites: number;
 }
+
+export type BeginBrowserLoginParams = {
+  /**
+   * Relative path to redirect to after login (must start with `/`). Defaults to `/`.
+   */
+  returnTo?: string;
+};
+
+export type HandleBrowserLoginCallbackParams = {
+  code?: string;
+  state?: string;
+  iss?: string;
+};

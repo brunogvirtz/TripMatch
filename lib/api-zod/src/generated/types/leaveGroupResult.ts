@@ -6,9 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreateUserBody {
-  username: string;
-  displayName: string;
-  /** @nullable */
-  avatarUrl?: string | null;
+export interface LeaveGroupResult {
+  success: boolean;
 }

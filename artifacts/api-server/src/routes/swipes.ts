@@ -1,15 +1,21 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, swipesTable, destinationsTable } from "@workspace/db";
 import { getSingleDestinationScore } from "../lib/matching";
 
 const router: IRouter = Router();
 
-router.post("/swipes", async (req, res): Promise<void> => {
-  const { userId, groupId, destinationId, value } = req.body;
+router.post("/swipes", async (req: Request, res: Response): Promise<void> => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  const userId = req.user.id;
 
-  if (!userId || !groupId || !destinationId || value === undefined) {
-    res.status(400).json({ error: "userId, groupId, destinationId, value are required" });
+  const { groupId, destinationId, value } = req.body;
+
+  if (!groupId || !destinationId || value === undefined) {
+    res.status(400).json({ error: "groupId, destinationId, value are required" });
     return;
   }
 
@@ -71,7 +77,7 @@ router.post("/swipes", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/swipes/group/:groupId", async (req, res): Promise<void> => {
+router.get("/swipes/group/:groupId", async (req: Request, res: Response): Promise<void> => {
   const raw = Array.isArray(req.params.groupId) ? req.params.groupId[0] : req.params.groupId;
   const groupId = parseInt(raw, 10);
 
@@ -83,15 +89,15 @@ router.get("/swipes/group/:groupId", async (req, res): Promise<void> => {
   res.json(swipes);
 });
 
-router.get("/swipes/user/:groupId", async (req, res): Promise<void> => {
-  const raw = Array.isArray(req.params.groupId) ? req.params.groupId[0] : req.params.groupId;
-  const groupId = parseInt(raw, 10);
-  const userId = parseInt(req.headers["x-user-id"] as string, 10);
-
-  if (!userId || isNaN(userId)) {
+router.get("/swipes/user/:groupId", async (req: Request, res: Response): Promise<void> => {
+  if (!req.isAuthenticated()) {
     res.json([]);
     return;
   }
+  const userId = req.user.id;
+
+  const raw = Array.isArray(req.params.groupId) ? req.params.groupId[0] : req.params.groupId;
+  const groupId = parseInt(raw, 10);
 
   const swipes = await db
     .select()

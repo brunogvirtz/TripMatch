@@ -5,10 +5,8 @@
  * TripMatch API - Group travel planning with swipe-based matching
  * OpenAPI spec version: 0.1.0
  */
+import type { AuthUser } from "./authUser";
 
-export interface RecordSwipeBody {
-  groupId: number;
-  destinationId: number;
-  /** -1=dislike, 1=like, 2=superlike */
-  value: number;
+export interface AuthUserEnvelope {
+  user: AuthUser | null;
 }

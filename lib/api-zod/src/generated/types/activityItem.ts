@@ -9,7 +9,7 @@ import type { ActivityItemType } from "./activityItemType";
 
 export interface ActivityItem {
   type: ActivityItemType;
-  userId: number;
+  userId: string;
   displayName: string;
   /** @nullable */
   destinationName?: string | null;

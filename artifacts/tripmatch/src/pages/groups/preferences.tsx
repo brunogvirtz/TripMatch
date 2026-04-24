@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useSession } from "@/hooks/use-session";
+import { useAuth } from "@workspace/replit-auth-web";
 import { useSubmitPreferences, getGetGroupQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout";
@@ -29,7 +29,7 @@ const TRAVEL_TYPES = [
 export default function Preferences() {
   const [, params] = useRoute("/groups/:id/preferences");
   const groupId = parseInt(params?.id || "0");
-  const { session } = useSession();
+  const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -46,7 +46,7 @@ export default function Preferences() {
   };
 
   const handleSubmit = () => {
-    if (!session || types.length === 0) {
+    if (!isAuthenticated || types.length === 0) {
       toast({ title: "Seleccioná al menos un estilo de viaje", variant: "destructive" });
       return;
     }
@@ -55,7 +55,6 @@ export default function Preferences() {
       {
         id: groupId,
         data: {
-          userId: session.id,
           budgetMin: 0,
           budgetMax: budget[0],
           climate,

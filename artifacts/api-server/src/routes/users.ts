@@ -1,44 +1,26 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { eq } from "drizzle-orm";
 import { db, usersTable, groupsTable, groupMembersTable } from "@workspace/db";
+
 const router: IRouter = Router();
 
-router.post("/users", async (req, res): Promise<void> => {
-  const { username, displayName, avatarUrl } = req.body;
-  if (!username || !displayName) {
-    res.status(400).json({ error: "username and displayName are required" });
-    return;
-  }
+function buildDisplayName(user: { firstName: string | null; lastName: string | null; email: string | null; id: string }): string {
+  const parts = [user.firstName, user.lastName].filter(Boolean);
+  if (parts.length > 0) return parts.join(" ");
+  if (user.email) return user.email.split("@")[0];
+  return "Viajero";
+}
 
-  const existing = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.username, username));
-
-  if (existing.length > 0) {
-    res.status(201).json(formatUser(existing[0]));
-    return;
-  }
-
-  const [user] = await db
-    .insert(usersTable)
-    .values({ username, displayName, avatarUrl: avatarUrl ?? null })
-    .returning();
-
-  res.status(201).json(formatUser(user));
-});
-
-router.get("/users/me", async (req, res): Promise<void> => {
-  const userId = parseInt(req.headers["x-user-id"] as string, 10);
-  if (!userId || isNaN(userId)) {
-    res.status(404).json({ error: "No user found" });
+router.get("/users/me", async (req: Request, res: Response): Promise<void> => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Not authenticated" });
     return;
   }
 
   const [user] = await db
     .select()
     .from(usersTable)
-    .where(eq(usersTable.id, userId));
+    .where(eq(usersTable.id, req.user.id));
 
   if (!user) {
     res.status(404).json({ error: "User not found" });
@@ -48,34 +30,32 @@ router.get("/users/me", async (req, res): Promise<void> => {
   res.json(formatUser(user));
 });
 
-router.put("/users/me", async (req, res): Promise<void> => {
-  const userId = parseInt(req.headers["x-user-id"] as string, 10);
-  if (!userId || isNaN(userId)) {
-    res.status(400).json({ error: "User ID required" });
+router.put("/users/me", async (req: Request, res: Response): Promise<void> => {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Not authenticated" });
     return;
   }
 
-  const { displayName, avatarUrl, preferences } = req.body;
+  const { firstName, lastName, preferences } = req.body;
 
   const updates: Record<string, unknown> = {};
-  if (displayName != null) updates.displayName = displayName;
-  if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
+  if (firstName !== undefined) updates.firstName = firstName;
+  if (lastName !== undefined) updates.lastName = lastName;
   if (preferences != null) updates.preferences = preferences;
 
   const [user] = await db
     .update(usersTable)
     .set(updates)
-    .where(eq(usersTable.id, userId))
+    .where(eq(usersTable.id, req.user.id))
     .returning();
 
   res.json(formatUser(user));
 });
 
-router.get("/dashboard", async (req, res): Promise<void> => {
-  const userId = parseInt(req.headers["x-user-id"] as string, 10);
-  if (!userId || isNaN(userId)) {
+router.get("/dashboard", async (req: Request, res: Response): Promise<void> => {
+  if (!req.isAuthenticated()) {
     res.json({
-      userId: 0,
+      userId: "",
       activeGroups: 0,
       totalSwipes: 0,
       recentGroups: [],
@@ -83,6 +63,8 @@ router.get("/dashboard", async (req, res): Promise<void> => {
     });
     return;
   }
+
+  const userId = req.user.id;
 
   const members = await db
     .select({ groupId: groupMembersTable.groupId })
@@ -126,9 +108,11 @@ router.get("/dashboard", async (req, res): Promise<void> => {
 function formatUser(user: typeof usersTable.$inferSelect) {
   return {
     id: user.id,
-    username: user.username,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl ?? null,
+    email: user.email ?? null,
+    firstName: user.firstName ?? null,
+    lastName: user.lastName ?? null,
+    displayName: buildDisplayName(user),
+    profileImageUrl: user.profileImageUrl ?? null,
     preferences: user.preferences ?? {},
     createdAt: user.createdAt,
   };

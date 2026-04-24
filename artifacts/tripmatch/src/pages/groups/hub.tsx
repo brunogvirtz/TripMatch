@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useSession } from "@/hooks/use-session";
+import { useAuth } from "@workspace/replit-auth-web";
 import {
   useGetGroup,
   useJoinGroup,
+  useLeaveGroup,
   getGetGroupQueryKey,
   getListGroupsQueryKey,
   getGetDashboardQueryKey,
@@ -14,7 +15,6 @@ import { Layout } from "@/components/layout";
 import {
   Copy,
   Users,
-  Settings,
   Play,
   Map,
   CheckCircle2,
@@ -22,28 +22,41 @@ import {
   Check,
   ArrowLeft,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function GroupHub() {
   const [, params] = useRoute("/groups/:id");
   const groupId = parseInt(params?.id || "0");
-  const { session } = useSession();
+  const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [inviteCode, setInviteCode] = useState("");
   const [copied, setCopied] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
 
   const { data: group, isLoading, refetch } = useGetGroup(groupId, {
     query: { enabled: !!groupId, queryKey: getGetGroupQueryKey(groupId) },
   });
 
   const joinGroup = useJoinGroup();
+  const leaveGroup = useLeaveGroup();
 
-  const isMember = group?.members?.some((m) => m.userId === session?.id);
-  const me = group?.members?.find((m) => m.userId === session?.id);
+  const isMember = group?.members?.some((m) => m.userId === user?.id);
+  const me = group?.members?.find((m) => m.userId === user?.id);
 
   useEffect(() => {
     const search = new URLSearchParams(window.location.search);
@@ -52,9 +65,9 @@ export default function GroupHub() {
   }, []);
 
   useEffect(() => {
-    if (!inviteCode || !session || !group || isMember) return;
+    if (!inviteCode || !isAuthenticated || !group || isMember) return;
     joinGroup.mutate(
-      { id: groupId, data: { inviteCode, userId: session.id } },
+      { id: groupId, data: { inviteCode } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetGroupQueryKey(groupId) });
@@ -65,7 +78,7 @@ export default function GroupHub() {
         },
       }
     );
-  }, [inviteCode, session, group, isMember]);
+  }, [inviteCode, isAuthenticated, group, isMember]);
 
   const handleCopyLink = () => {
     if (!group) return;
@@ -77,9 +90,9 @@ export default function GroupHub() {
   };
 
   const handleManualJoin = () => {
-    if (!session || !group) return;
+    if (!isAuthenticated || !group) return;
     joinGroup.mutate(
-      { id: groupId, data: { inviteCode: inviteCode || group.inviteCode, userId: session.id } },
+      { id: groupId, data: { inviteCode: inviteCode || group.inviteCode } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetGroupQueryKey(groupId) });
@@ -87,6 +100,21 @@ export default function GroupHub() {
           queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
           refetch();
           toast({ title: "¡Te uniste al viaje!" });
+        },
+      }
+    );
+  };
+
+  const handleLeave = () => {
+    leaveGroup.mutate(
+      { id: groupId },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListGroupsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+          toast({ title: "Saliste del grupo" });
+          setLeaveOpen(false);
+          setLocation("/dashboard");
         },
       }
     );
@@ -308,7 +336,7 @@ export default function GroupHub() {
                   <div>
                     <div className="font-bold text-sm text-foreground">
                       {member.displayName}{" "}
-                      {member.userId === session?.id && (
+                      {member.userId === user?.id && (
                         <span className="text-muted-foreground font-normal text-xs">(vos)</span>
                       )}
                     </div>
@@ -350,6 +378,35 @@ export default function GroupHub() {
             </Button>
           </div>
         </div>
+
+        <Button
+          variant="ghost"
+          className="w-full h-12 rounded-2xl text-destructive hover:bg-destructive/5 hover:text-destructive font-bold mt-4"
+          onClick={() => setLeaveOpen(true)}
+        >
+          <LogOut className="mr-2 h-4 w-4" /> Salir del grupo
+        </Button>
+
+        <AlertDialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+          <AlertDialogContent className="rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Salir de "{group.name}"?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Vas a perder tus votos en este grupo. Podés volver a unirte usando el código de invitación.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleLeave}
+                disabled={leaveGroup.isPending}
+                className="rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              >
+                {leaveGroup.isPending ? "Saliendo..." : "Salir del grupo"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );

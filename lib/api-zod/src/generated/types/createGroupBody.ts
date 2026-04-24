@@ -10,5 +10,4 @@ export interface CreateGroupBody {
   name: string;
   /** @nullable */
   description?: string | null;
-  userId: number;
 }

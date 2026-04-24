@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, count, sql } from "drizzle-orm";
 import { db, groupsTable, groupMembersTable, usersTable, swipesTable } from "@workspace/db";
 import { computeGroupScores } from "../lib/matching";
@@ -8,12 +8,25 @@ const generateCode = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 8);
 
 const router: IRouter = Router();
 
-router.get("/groups", async (req, res): Promise<void> => {
-  const userId = parseInt(req.headers["x-user-id"] as string, 10);
-  if (!userId || isNaN(userId)) {
-    res.json([]);
-    return;
+function buildDisplayName(user: { firstName: string | null; lastName: string | null; email: string | null } | null | undefined): string {
+  if (!user) return "Viajero";
+  const parts = [user.firstName, user.lastName].filter(Boolean);
+  if (parts.length > 0) return parts.join(" ");
+  if (user.email) return user.email.split("@")[0];
+  return "Viajero";
+}
+
+function requireAuth(req: Request, res: Response): string | null {
+  if (!req.isAuthenticated()) {
+    res.status(401).json({ error: "Not authenticated" });
+    return null;
   }
+  return req.user.id;
+}
+
+router.get("/groups", async (req: Request, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
 
   const members = await db
     .select({ groupId: groupMembersTable.groupId })
@@ -43,10 +56,13 @@ router.get("/groups", async (req, res): Promise<void> => {
   res.json(result);
 });
 
-router.post("/groups", async (req, res): Promise<void> => {
-  const { name, description, userId } = req.body;
-  if (!name || !userId) {
-    res.status(400).json({ error: "name and userId are required" });
+router.post("/groups", async (req: Request, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+
+  const { name, description } = req.body;
+  if (!name) {
+    res.status(400).json({ error: "name is required" });
     return;
   }
 
@@ -78,7 +94,7 @@ router.post("/groups", async (req, res): Promise<void> => {
   res.status(201).json(formatGroup(group, cnt?.count ?? 1));
 });
 
-router.get("/groups/:id", async (req, res): Promise<void> => {
+router.get("/groups/:id", async (req: Request, res: Response): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
 
@@ -115,8 +131,8 @@ router.get("/groups/:id", async (req, res): Promise<void> => {
     role: member.role,
     hasCompletedPreferences: member.hasCompletedPreferences === "true",
     swipeCount: swipeMap.get(member.userId) ?? 0,
-    displayName: user?.displayName ?? "Unknown",
-    avatarUrl: user?.avatarUrl ?? null,
+    displayName: buildDisplayName(user),
+    avatarUrl: user?.profileImageUrl ?? null,
     joinedAt: member.joinedAt,
   }));
 
@@ -136,7 +152,10 @@ router.get("/groups/:id", async (req, res): Promise<void> => {
   });
 });
 
-router.patch("/groups/:id", async (req, res): Promise<void> => {
+router.patch("/groups/:id", async (req: Request, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
 
@@ -165,10 +184,13 @@ router.patch("/groups/:id", async (req, res): Promise<void> => {
   res.json(formatGroup(group, cnt?.count ?? 0));
 });
 
-router.post("/groups/:id/join", async (req, res): Promise<void> => {
+router.post("/groups/:id/join", async (req: Request, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
-  const { inviteCode, userId } = req.body;
+  const { inviteCode } = req.body;
 
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, id));
   if (!group) {
@@ -205,7 +227,27 @@ router.post("/groups/:id/join", async (req, res): Promise<void> => {
   res.json(formatGroup(group, cnt?.count ?? 0));
 });
 
-router.get("/groups/:id/members", async (req, res): Promise<void> => {
+router.post("/groups/:id/leave", async (req: Request, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+
+  await db
+    .delete(swipesTable)
+    .where(and(eq(swipesTable.groupId, id), eq(swipesTable.userId, userId)));
+
+  await db
+    .delete(groupMembersTable)
+    .where(
+      and(eq(groupMembersTable.groupId, id), eq(groupMembersTable.userId, userId))
+    );
+
+  res.json({ success: true });
+});
+
+router.get("/groups/:id/members", async (req: Request, res: Response): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
 
@@ -234,22 +276,20 @@ router.get("/groups/:id/members", async (req, res): Promise<void> => {
       role: member.role,
       hasCompletedPreferences: member.hasCompletedPreferences === "true",
       swipeCount: swipeMap.get(member.userId) ?? 0,
-      displayName: user?.displayName ?? "Unknown",
-      avatarUrl: user?.avatarUrl ?? null,
+      displayName: buildDisplayName(user),
+      avatarUrl: user?.profileImageUrl ?? null,
       joinedAt: member.joinedAt,
     }))
   );
 });
 
-router.post("/groups/:id/preferences", async (req, res): Promise<void> => {
+router.post("/groups/:id/preferences", async (req: Request, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
-  const { userId, budgetMin, budgetMax, travelTypes, climate, activityLevel, availableDates } = req.body;
-
-  if (!userId) {
-    res.status(400).json({ error: "userId is required" });
-    return;
-  }
+  const { budgetMin, budgetMax, travelTypes, climate, activityLevel, availableDates } = req.body;
 
   const [member] = await db
     .update(groupMembersTable)
@@ -286,13 +326,13 @@ router.post("/groups/:id/preferences", async (req, res): Promise<void> => {
     role: member.role,
     hasCompletedPreferences: true,
     swipeCount: swipeCounts[0]?.cnt ?? 0,
-    displayName: user?.displayName ?? "Unknown",
-    avatarUrl: user?.avatarUrl ?? null,
+    displayName: buildDisplayName(user),
+    avatarUrl: user?.profileImageUrl ?? null,
     joinedAt: member.joinedAt,
   });
 });
 
-router.get("/groups/:id/results", async (req, res): Promise<void> => {
+router.get("/groups/:id/results", async (req: Request, res: Response): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
 
@@ -303,7 +343,7 @@ router.get("/groups/:id/results", async (req, res): Promise<void> => {
 
   const totalMembers = members.length;
   const swipedMembers = await db
-    .select({ userId: sql<number>`distinct ${swipesTable.userId}` })
+    .select({ userId: sql<string>`distinct ${swipesTable.userId}` })
     .from(swipesTable)
     .where(eq(swipesTable.groupId, id));
 
@@ -315,15 +355,15 @@ router.get("/groups/:id/results", async (req, res): Promise<void> => {
   const hasEnoughData = membersCompleted > 0 && topDestinations.length > 0;
 
   const top = topDestinations[0];
-  let consensusSummary = "Not enough data yet";
+  let consensusSummary = "Todavía no hay suficientes datos";
   if (hasEnoughData && top) {
     const pct = top.matchPercentage;
     if (pct >= 80) {
-      consensusSummary = `${pct}% of your group agrees on ${top.destinationName}`;
+      consensusSummary = `${pct}% del grupo coincide en ${top.destinationName}`;
     } else if (pct >= 60) {
-      consensusSummary = `${pct}% of your group likes ${top.destinationName}`;
+      consensusSummary = `${pct}% del grupo le gusta ${top.destinationName}`;
     } else {
-      consensusSummary = `Your group has varied tastes — keep swiping for better results`;
+      consensusSummary = `Tu grupo tiene gustos variados — seguí deslizando`;
     }
   }
 
@@ -338,7 +378,7 @@ router.get("/groups/:id/results", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/groups/:id/stats", async (req, res): Promise<void> => {
+router.get("/groups/:id/stats", async (req: Request, res: Response): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
 
@@ -348,7 +388,7 @@ router.get("/groups/:id/stats", async (req, res): Promise<void> => {
     .where(eq(swipesTable.groupId, id));
 
   const swipedMembersResult = await db
-    .select({ userId: sql<number>`distinct ${swipesTable.userId}` })
+    .select({ userId: sql<string>`distinct ${swipesTable.userId}` })
     .from(swipesTable)
     .where(eq(swipesTable.groupId, id));
 
@@ -389,7 +429,7 @@ router.get("/groups/:id/stats", async (req, res): Promise<void> => {
 
   const activityItems: {
     type: string;
-    userId: number;
+    userId: string;
     displayName: string;
     destinationName: string | null;
     action: string;
@@ -398,11 +438,11 @@ router.get("/groups/:id/stats", async (req, res): Promise<void> => {
 
   for (const { swipe, user } of recentSwipes) {
     const action =
-      swipe.value === 2 ? "superliked" : swipe.value === 1 ? "liked" : "passed on";
+      swipe.value === 2 ? "le encantó" : swipe.value === 1 ? "le gustó" : "descartó";
     activityItems.push({
       type: "swipe",
       userId: swipe.userId,
-      displayName: user?.displayName ?? "Someone",
+      displayName: buildDisplayName(user),
       destinationName: null,
       action,
       createdAt: swipe.createdAt,
@@ -413,9 +453,9 @@ router.get("/groups/:id/stats", async (req, res): Promise<void> => {
     activityItems.push({
       type: "join",
       userId: member.userId,
-      displayName: user?.displayName ?? "Someone",
+      displayName: buildDisplayName(user),
       destinationName: null,
-      action: "joined the group",
+      action: "se unió al grupo",
       createdAt: member.joinedAt,
     });
   }

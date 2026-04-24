@@ -1,35 +1,43 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { useSession } from "@/hooks/use-session";
+import { useAuth } from "@workspace/replit-auth-web";
 import { useListGroups, useGetDashboard } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Layout } from "@/components/layout";
 import { Plus, Users, MapPin, Loader2, Compass } from "lucide-react";
 
+function displayName(user: { firstName: string | null; lastName: string | null; email: string | null } | null): string {
+  if (!user) return "Viajero";
+  const parts = [user.firstName, user.lastName].filter(Boolean);
+  if (parts.length > 0) return parts.join(" ");
+  if (user.email) return user.email.split("@")[0];
+  return "Viajero";
+}
+
 export default function Dashboard() {
-  const { session, isLoaded } = useSession();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (isLoaded && !session) setLocation("/");
-  }, [session, isLoaded, setLocation]);
+    if (!isLoading && !isAuthenticated) setLocation("/");
+  }, [isAuthenticated, isLoading, setLocation]);
 
   const { data: dashboard, isLoading: loadingDash } = useGetDashboard({
-    query: { enabled: !!session?.id },
+    query: { enabled: isAuthenticated },
   });
 
   const { data: groups, isLoading: loadingGroups } = useListGroups({
-    query: { enabled: !!session?.id },
+    query: { enabled: isAuthenticated },
   });
 
-  if (!isLoaded || !session) return null;
+  if (isLoading || !isAuthenticated) return null;
 
   return (
     <Layout>
       <div className="py-4">
         <h1 className="text-3xl font-black mb-8 tracking-tight">
-          ¡Hola, {session.displayName}! 👋
+          ¡Hola, {displayName(user)}! 👋
         </h1>
 
         {loadingDash ? (

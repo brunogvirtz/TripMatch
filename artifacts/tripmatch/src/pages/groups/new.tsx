@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useSession } from "@/hooks/use-session";
+import { useAuth } from "@workspace/replit-auth-web";
 import {
   useCreateGroup,
   getListGroupsQueryKey,
@@ -15,7 +15,7 @@ import { Map } from "lucide-react";
 
 export default function NewGroup() {
   const [, setLocation] = useLocation();
-  const { session } = useSession();
+  const { isAuthenticated } = useAuth();
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const createGroup = useCreateGroup();
@@ -23,14 +23,13 @@ export default function NewGroup() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !session) return;
+    if (!name.trim() || !isAuthenticated) return;
 
     createGroup.mutate(
       {
         data: {
           name: name.trim(),
           description: desc.trim() || null,
-          userId: session.id,
         },
       },
       {

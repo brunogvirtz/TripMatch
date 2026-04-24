@@ -18,7 +18,7 @@ export interface GroupDetail {
   status: GroupDetailStatus;
   memberCount: number;
   createdAt: Date;
-  createdByUserId: number;
+  createdByUserId: string;
   members: GroupMember[];
   topDestinations: DestinationScore[];
 }

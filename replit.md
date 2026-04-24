@@ -21,8 +21,9 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 A group travel planning web app (scalable to mobile) that helps friends decide on trips together using a swipe-based matching system.
 
 ### Core Features
-- User onboarding (name only, stored in localStorage)
+- Browser auth via Replit OIDC (sessions persisted in DB; users login from any device)
 - Group creation with shareable invite codes
+- Group memberships persist server-side; users stay until they explicitly leave
 - Preferences questionnaire (budget, travel type, climate, activity level)
 - Swipe deck — swipe right (like +1), left (dislike -1), up (superlike +2)
 - Group matching algorithm: score = avg(swipes) - 0.5 * stdDev
@@ -30,12 +31,11 @@ A group travel planning web app (scalable to mobile) that helps friends decide o
 - Trip plan page with activities
 
 ### Pages
-- `/` — Landing page
-- `/onboarding` — Quick name setup
+- `/` — Landing page with login button
 - `/dashboard` — User's active groups + stats
 - `/groups/new` — Create a group
 - `/groups/join` — Join via invite code
-- `/groups/:id` — Group hub
+- `/groups/:id` — Group hub (with leave button)
 - `/groups/:id/preferences` — Set preferences
 - `/groups/:id/swipe` — Swipe deck (core feature)
 - `/groups/:id/results` — Matching results
@@ -52,6 +52,7 @@ artifacts-monorepo/
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
+│   ├── replit-auth-web/    # useAuth() hook for browser
 │   └── db/                 # Drizzle ORM schema + DB connection
 ├── scripts/                # Utility scripts
 │   └── src/seed-destinations.ts  # Seeds 15 destinations
@@ -59,20 +60,28 @@ artifacts-monorepo/
 
 ## Database Schema
 
-- `users` — id, username, displayName, avatarUrl, preferences (jsonb)
-- `groups` — id, name, inviteCode, status, createdByUserId
-- `group_members` — userId, groupId, role, preferences fields
+- `users` — id (varchar from OIDC sub claim), email, firstName, lastName, profileImageUrl, preferences (jsonb)
+- `sessions` — sid, sess (jsonb), expire (DB-backed Replit Auth sessions)
+- `groups` — id, name, inviteCode, status, createdByUserId (varchar)
+- `group_members` — userId (varchar), groupId, role, preferences fields
 - `destinations` — id, name, country, description, imageUrl, tags[], costLevel, climateType, activityLevel, travelTypes[], avgRating
-- `swipes` — userId, groupId, destinationId, value (-1/1/2)
+- `swipes` — userId (varchar), groupId, destinationId, value (-1/1/2)
 
 ## API Routes
 
-- `POST /api/users` — Create/upsert user
-- `GET/PUT /api/users/me` — Get/update current user (x-user-id header)
+### Auth
+- `GET /api/auth/user` — current authenticated user (or null)
+- `GET /api/login` — start OIDC browser login
+- `GET /api/callback` — OIDC callback
+- `GET /api/logout` — clear session + OIDC logout
+
+### App
+- `GET/PUT /api/users/me` — Get/update current user (uses session)
 - `GET /api/dashboard` — Dashboard summary
 - `GET/POST /api/groups` — List/create groups
 - `GET/PATCH /api/groups/:id` — Get/update group
 - `POST /api/groups/:id/join` — Join via invite code
+- `POST /api/groups/:id/leave` — Leave group (deletes member + their swipes)
 - `GET /api/groups/:id/members` — Group members
 - `POST /api/groups/:id/preferences` — Submit preferences
 - `GET /api/groups/:id/results` — Matching results

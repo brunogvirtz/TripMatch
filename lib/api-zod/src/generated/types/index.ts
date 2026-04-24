@@ -8,8 +8,10 @@
 
 export * from "./activityItem";
 export * from "./activityItemType";
+export * from "./authUser";
+export * from "./authUserEnvelope";
+export * from "./beginBrowserLoginParams";
 export * from "./createGroupBody";
-export * from "./createUserBody";
 export * from "./dashboardSummary";
 export * from "./destination";
 export * from "./destinationScore";
@@ -21,8 +23,10 @@ export * from "./groupMember";
 export * from "./groupMemberRole";
 export * from "./groupStats";
 export * from "./groupStatus";
+export * from "./handleBrowserLoginCallbackParams";
 export * from "./healthStatus";
 export * from "./joinGroupBody";
+export * from "./leaveGroupResult";
 export * from "./matchingResults";
 export * from "./recordSwipeBody";
 export * from "./submitPreferencesBody";

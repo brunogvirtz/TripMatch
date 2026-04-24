@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useSession } from "@/hooks/use-session";
+import { useAuth } from "@workspace/replit-auth-web";
 import {
   useJoinGroup,
   getListGroupsQueryKey,
@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function JoinGroup() {
   const [, setLocation] = useLocation();
-  const { session } = useSession();
+  const { isAuthenticated } = useAuth();
   const [code, setCode] = useState("");
   const joinGroup = useJoinGroup();
   const queryClient = useQueryClient();
@@ -23,7 +23,7 @@ export default function JoinGroup() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim() || !session) return;
+    if (!code.trim() || !isAuthenticated) return;
 
     let groupId = 0;
     let finalCode = code.trim();
@@ -46,7 +46,7 @@ export default function JoinGroup() {
     }
 
     joinGroup.mutate(
-      { id: groupId, data: { inviteCode: finalCode, userId: session.id } },
+      { id: groupId, data: { inviteCode: finalCode } },
       {
         onSuccess: (group) => {
           queryClient.invalidateQueries({ queryKey: getListGroupsQueryKey() });

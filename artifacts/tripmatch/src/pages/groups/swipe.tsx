@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useSession } from "@/hooks/use-session";
+import { useAuth } from "@workspace/replit-auth-web";
 import { useListDestinations, useRecordSwipe, useListUserSwipes } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Layout } from "@/components/layout";
@@ -10,12 +10,12 @@ import { X, Heart, Star, MapPin, CheckCircle, ChevronLeft } from "lucide-react";
 export default function Swipe() {
   const [, params] = useRoute("/groups/:id/swipe");
   const groupId = parseInt(params?.id || "0");
-  const { session } = useSession();
+  const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
   const { data: destinations = [], isLoading: loadingDest } = useListDestinations();
   const { data: userSwipes = [], isLoading: loadingSwipes, refetch } = useListUserSwipes(groupId, {
-    query: { enabled: !!groupId && !!session },
+    query: { enabled: !!groupId && isAuthenticated },
   });
 
   const recordSwipe = useRecordSwipe();
@@ -37,7 +37,7 @@ export default function Swipe() {
   const activeDest = unswipedDests[currentIndex];
 
   const handleSwipe = async (dir: "left" | "right" | "up") => {
-    if (!activeDest || !session) return;
+    if (!activeDest || !isAuthenticated) return;
 
     let moveX = 0;
     let moveY = 0;
@@ -52,7 +52,6 @@ export default function Swipe() {
     recordSwipe.mutate(
       {
         data: {
-          userId: session.id,
           groupId,
           destinationId: activeDest.id,
           value,

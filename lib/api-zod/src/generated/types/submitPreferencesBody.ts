@@ -7,7 +7,6 @@
  */
 
 export interface SubmitPreferencesBody {
-  userId: number;
   budgetMin: number;
   budgetMax: number;
   travelTypes: string[];

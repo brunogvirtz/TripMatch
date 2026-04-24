@@ -9,7 +9,7 @@ import type { GroupMemberRole } from "./groupMemberRole";
 
 export interface GroupMember {
   id: number;
-  userId: number;
+  userId: string;
   groupId: number;
   role: GroupMemberRole;
   hasCompletedPreferences: boolean;

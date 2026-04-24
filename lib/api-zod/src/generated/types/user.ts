@@ -8,11 +8,16 @@
 import type { UserPreferences } from "./userPreferences";
 
 export interface User {
-  id: number;
-  username: string;
+  id: string;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  firstName?: string | null;
+  /** @nullable */
+  lastName?: string | null;
   displayName: string;
   /** @nullable */
-  avatarUrl?: string | null;
+  profileImageUrl?: string | null;
   preferences?: UserPreferences;
   createdAt: Date;
 }

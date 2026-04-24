@@ -8,7 +8,7 @@
 import type { Group } from "./group";
 
 export interface DashboardSummary {
-  userId: number;
+  userId: string;
   activeGroups: number;
   totalSwipes: number;
   recentGroups: Group[];

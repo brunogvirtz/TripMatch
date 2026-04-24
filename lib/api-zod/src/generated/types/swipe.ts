@@ -8,7 +8,7 @@
 
 export interface Swipe {
   id: number;
-  userId: number;
+  userId: string;
   groupId: number;
   destinationId: number;
   value: number;

@@ -1,7 +1,7 @@
-import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
-import { usersTable } from "./users";
+import { usersTable } from "./auth";
 
 export const groupsTable = pgTable("groups", {
   id: serial("id").primaryKey(),
@@ -9,7 +9,7 @@ export const groupsTable = pgTable("groups", {
   description: text("description"),
   inviteCode: text("invite_code").notNull().unique(),
   status: text("status").notNull().default("pending"),
-  createdByUserId: integer("created_by_user_id").notNull().references(() => usersTable.id),
+  createdByUserId: varchar("created_by_user_id").notNull().references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
@@ -17,7 +17,7 @@ export const groupsTable = pgTable("groups", {
 export const groupMembersTable = pgTable("group_members", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").notNull().references(() => groupsTable.id),
-  userId: integer("user_id").notNull().references(() => usersTable.id),
+  userId: varchar("user_id").notNull().references(() => usersTable.id),
   role: text("role").notNull().default("member"),
   hasCompletedPreferences: text("has_completed_preferences").notNull().default("false"),
   budgetMin: text("budget_min"),

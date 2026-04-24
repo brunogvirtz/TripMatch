@@ -5,12 +5,15 @@
  * TripMatch API - Group travel planning with swipe-based matching
  * OpenAPI spec version: 0.1.0
  */
-import type { UserPreferences } from "./userPreferences";
 
-export interface UpdateUserBody {
+export interface AuthUser {
+  id: string;
   /** @nullable */
-  firstName?: string | null;
+  email: string | null;
   /** @nullable */
-  lastName?: string | null;
-  preferences?: UserPreferences;
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+  /** @nullable */
+  profileImageUrl: string | null;
 }

@@ -15,13 +15,52 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * @summary Get the currently authenticated user
+ */
+export const GetCurrentAuthUserResponse = zod.object({
+  user: zod.union([
+    zod.object({
+      id: zod.string(),
+      email: zod.string().email().nullable(),
+      firstName: zod.string().nullable(),
+      lastName: zod.string().nullable(),
+      profileImageUrl: zod.string().nullable(),
+    }),
+    zod.null(),
+  ]),
+});
+
+/**
+ * @summary Start the browser OIDC login flow
+ */
+export const BeginBrowserLoginQueryParams = zod.object({
+  returnTo: zod.coerce
+    .string()
+    .optional()
+    .describe(
+      "Relative path to redirect to after login (must start with `\/`). Defaults to `\/`.",
+    ),
+});
+
+/**
+ * @summary Complete the browser OIDC login flow
+ */
+export const HandleBrowserLoginCallbackQueryParams = zod.object({
+  code: zod.coerce.string().optional(),
+  state: zod.coerce.string().optional(),
+  iss: zod.coerce.string().url().optional(),
+});
+
+/**
  * @summary Get current user profile
  */
 export const GetMeResponse = zod.object({
-  id: zod.number(),
-  username: zod.string(),
+  id: zod.string(),
+  email: zod.string().nullish(),
+  firstName: zod.string().nullish(),
+  lastName: zod.string().nullish(),
   displayName: zod.string(),
-  avatarUrl: zod.string().nullish(),
+  profileImageUrl: zod.string().nullish(),
   preferences: zod
     .object({
       budgetMin: zod.number().nullish(),
@@ -38,8 +77,8 @@ export const GetMeResponse = zod.object({
  * @summary Update current user profile and preferences
  */
 export const UpdateMeBody = zod.object({
-  displayName: zod.string().nullish(),
-  avatarUrl: zod.string().nullish(),
+  firstName: zod.string().nullish(),
+  lastName: zod.string().nullish(),
   preferences: zod
     .object({
       budgetMin: zod.number().nullish(),
@@ -52,10 +91,12 @@ export const UpdateMeBody = zod.object({
 });
 
 export const UpdateMeResponse = zod.object({
-  id: zod.number(),
-  username: zod.string(),
+  id: zod.string(),
+  email: zod.string().nullish(),
+  firstName: zod.string().nullish(),
+  lastName: zod.string().nullish(),
   displayName: zod.string(),
-  avatarUrl: zod.string().nullish(),
+  profileImageUrl: zod.string().nullish(),
   preferences: zod
     .object({
       budgetMin: zod.number().nullish(),
@@ -66,15 +107,6 @@ export const UpdateMeResponse = zod.object({
     })
     .optional(),
   createdAt: zod.coerce.date(),
-});
-
-/**
- * @summary Create or upsert a user
- */
-export const CreateUserBody = zod.object({
-  username: zod.string(),
-  displayName: zod.string(),
-  avatarUrl: zod.string().nullish(),
 });
 
 /**
@@ -88,7 +120,7 @@ export const ListGroupsResponseItem = zod.object({
   status: zod.enum(["pending", "swiping", "matched", "planning"]),
   memberCount: zod.number(),
   createdAt: zod.coerce.date(),
-  createdByUserId: zod.number(),
+  createdByUserId: zod.string(),
 });
 export const ListGroupsResponse = zod.array(ListGroupsResponseItem);
 
@@ -98,7 +130,6 @@ export const ListGroupsResponse = zod.array(ListGroupsResponseItem);
 export const CreateGroupBody = zod.object({
   name: zod.string(),
   description: zod.string().nullish(),
-  userId: zod.number(),
 });
 
 /**
@@ -116,11 +147,11 @@ export const GetGroupResponse = zod.object({
   status: zod.enum(["pending", "swiping", "matched", "planning"]),
   memberCount: zod.number(),
   createdAt: zod.coerce.date(),
-  createdByUserId: zod.number(),
+  createdByUserId: zod.string(),
   members: zod.array(
     zod.object({
       id: zod.number(),
-      userId: zod.number(),
+      userId: zod.string(),
       groupId: zod.number(),
       role: zod.enum(["creator", "member"]),
       hasCompletedPreferences: zod.boolean(),
@@ -168,7 +199,7 @@ export const UpdateGroupResponse = zod.object({
   status: zod.enum(["pending", "swiping", "matched", "planning"]),
   memberCount: zod.number(),
   createdAt: zod.coerce.date(),
-  createdByUserId: zod.number(),
+  createdByUserId: zod.string(),
 });
 
 /**
@@ -180,7 +211,6 @@ export const JoinGroupParams = zod.object({
 
 export const JoinGroupBody = zod.object({
   inviteCode: zod.string(),
-  userId: zod.number(),
 });
 
 export const JoinGroupResponse = zod.object({
@@ -191,7 +221,18 @@ export const JoinGroupResponse = zod.object({
   status: zod.enum(["pending", "swiping", "matched", "planning"]),
   memberCount: zod.number(),
   createdAt: zod.coerce.date(),
-  createdByUserId: zod.number(),
+  createdByUserId: zod.string(),
+});
+
+/**
+ * @summary Leave a group
+ */
+export const LeaveGroupParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const LeaveGroupResponse = zod.object({
+  success: zod.boolean(),
 });
 
 /**
@@ -203,7 +244,7 @@ export const GetGroupMembersParams = zod.object({
 
 export const GetGroupMembersResponseItem = zod.object({
   id: zod.number(),
-  userId: zod.number(),
+  userId: zod.string(),
   groupId: zod.number(),
   role: zod.enum(["creator", "member"]),
   hasCompletedPreferences: zod.boolean(),
@@ -222,7 +263,6 @@ export const SubmitPreferencesParams = zod.object({
 });
 
 export const SubmitPreferencesBody = zod.object({
-  userId: zod.number(),
   budgetMin: zod.number(),
   budgetMax: zod.number(),
   travelTypes: zod.array(zod.string()),
@@ -233,7 +273,7 @@ export const SubmitPreferencesBody = zod.object({
 
 export const SubmitPreferencesResponse = zod.object({
   id: zod.number(),
-  userId: zod.number(),
+  userId: zod.string(),
   groupId: zod.number(),
   role: zod.enum(["creator", "member"]),
   hasCompletedPreferences: zod.boolean(),
@@ -275,7 +315,7 @@ export const GetGroupResultsResponse = zod.object({
 });
 
 /**
- * @summary Get group activity stats (swipe counts, preference completion, top matches)
+ * @summary Get group activity stats
  */
 export const GetGroupStatsParams = zod.object({
   id: zod.coerce.number(),
@@ -304,7 +344,7 @@ export const GetGroupStatsResponse = zod.object({
   recentActivity: zod.array(
     zod.object({
       type: zod.enum(["swipe", "join", "preference"]),
-      userId: zod.number(),
+      userId: zod.string(),
       displayName: zod.string(),
       destinationName: zod.string().nullish(),
       action: zod.string(),
@@ -356,7 +396,6 @@ export const GetDestinationResponse = zod.object({
  * @summary Record a swipe on a destination
  */
 export const RecordSwipeBody = zod.object({
-  userId: zod.number(),
   groupId: zod.number(),
   destinationId: zod.number(),
   value: zod.number().describe("-1=dislike, 1=like, 2=superlike"),
@@ -371,7 +410,7 @@ export const ListGroupSwipesParams = zod.object({
 
 export const ListGroupSwipesResponseItem = zod.object({
   id: zod.number(),
-  userId: zod.number(),
+  userId: zod.string(),
   groupId: zod.number(),
   destinationId: zod.number(),
   value: zod.number(),
@@ -388,7 +427,7 @@ export const ListUserSwipesParams = zod.object({
 
 export const ListUserSwipesResponseItem = zod.object({
   id: zod.number(),
-  userId: zod.number(),
+  userId: zod.string(),
   groupId: zod.number(),
   destinationId: zod.number(),
   value: zod.number(),
@@ -400,7 +439,7 @@ export const ListUserSwipesResponse = zod.array(ListUserSwipesResponseItem);
  * @summary Get dashboard summary for the current user
  */
 export const GetDashboardResponse = zod.object({
-  userId: zod.number(),
+  userId: zod.string(),
   activeGroups: zod.number(),
   totalSwipes: zod.number(),
   recentGroups: zod.array(
@@ -412,7 +451,7 @@ export const GetDashboardResponse = zod.object({
       status: zod.enum(["pending", "swiping", "matched", "planning"]),
       memberCount: zod.number(),
       createdAt: zod.coerce.date(),
-      createdByUserId: zod.number(),
+      createdByUserId: zod.string(),
     }),
   ),
   pendingInvites: zod.number(),

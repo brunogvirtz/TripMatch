@@ -6,9 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface RecordSwipeBody {
-  groupId: number;
-  destinationId: number;
-  /** -1=dislike, 1=like, 2=superlike */
-  value: number;
-}
+export type BeginBrowserLoginParams = {
+  /**
+   * Relative path to redirect to after login (must start with `/`). Defaults to `/`.
+   */
+  returnTo?: string;
+};
