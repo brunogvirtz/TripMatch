@@ -1,5 +1,6 @@
 packages:
-  - artifacts/*
+  - 'artifacts/tripmatch'
+  - 'artifacts/api-server'
   - lib/*
   - scripts
 
