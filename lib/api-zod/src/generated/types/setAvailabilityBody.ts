@@ -6,10 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface SubmitPreferencesBody {
-  budgetMin: number;
-  budgetMax: number;
-  travelTypes: string[];
-  climate: string;
-  activityLevel: string;
+export interface SetAvailabilityBody {
+  dates: string[];
 }

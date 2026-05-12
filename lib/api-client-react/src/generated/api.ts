@@ -21,6 +21,7 @@ import type {
   BeginBrowserLoginParams,
   CreateGroupBody,
   DashboardSummary,
+  DatesResult,
   Destination,
   Group,
   GroupDetail,
@@ -31,7 +32,9 @@ import type {
   JoinGroupBody,
   LeaveGroupResult,
   MatchingResults,
+  MyAvailabilityResult,
   RecordSwipeBody,
+  SetAvailabilityBody,
   SubmitPreferencesBody,
   Swipe,
   SwipeResult,
@@ -1298,6 +1301,267 @@ export const useSubmitPreferences = <
 > => {
   return useMutation(getSubmitPreferencesMutationOptions(options));
 };
+
+/**
+ * @summary Get current user's available dates for a group
+ */
+export const getGetMyAvailabilityUrl = (id: number) => {
+  return `/api/groups/${id}/availability`;
+};
+
+export const getMyAvailability = async (
+  id: number,
+  options?: RequestInit,
+): Promise<MyAvailabilityResult> => {
+  return customFetch<MyAvailabilityResult>(getGetMyAvailabilityUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyAvailabilityQueryKey = (id: number) => {
+  return [`/api/groups/${id}/availability`] as const;
+};
+
+export const getGetMyAvailabilityQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyAvailability>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyAvailability>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyAvailabilityQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMyAvailability>>
+  > = ({ signal }) => getMyAvailability(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyAvailability>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyAvailabilityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyAvailability>>
+>;
+export type GetMyAvailabilityQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get current user's available dates for a group
+ */
+
+export function useGetMyAvailability<
+  TData = Awaited<ReturnType<typeof getMyAvailability>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMyAvailability>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyAvailabilityQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set current user's available dates for a group
+ */
+export const getSetAvailabilityUrl = (id: number) => {
+  return `/api/groups/${id}/availability`;
+};
+
+export const setAvailability = async (
+  id: number,
+  setAvailabilityBody: SetAvailabilityBody,
+  options?: RequestInit,
+): Promise<MyAvailabilityResult> => {
+  return customFetch<MyAvailabilityResult>(getSetAvailabilityUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setAvailabilityBody),
+  });
+};
+
+export const getSetAvailabilityMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setAvailability>>,
+    TError,
+    { id: number; data: BodyType<SetAvailabilityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setAvailability>>,
+  TError,
+  { id: number; data: BodyType<SetAvailabilityBody> },
+  TContext
+> => {
+  const mutationKey = ["setAvailability"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setAvailability>>,
+    { id: number; data: BodyType<SetAvailabilityBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return setAvailability(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetAvailabilityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setAvailability>>
+>;
+export type SetAvailabilityMutationBody = BodyType<SetAvailabilityBody>;
+export type SetAvailabilityMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Set current user's available dates for a group
+ */
+export const useSetAvailability = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setAvailability>>,
+    TError,
+    { id: number; data: BodyType<SetAvailabilityBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setAvailability>>,
+  TError,
+  { id: number; data: BodyType<SetAvailabilityBody> },
+  TContext
+> => {
+  return useMutation(getSetAvailabilityMutationOptions(options));
+};
+
+/**
+ * @summary Get best consecutive travel date windows for the group
+ */
+export const getGetGroupDatesUrl = (id: number) => {
+  return `/api/groups/${id}/dates`;
+};
+
+export const getGroupDates = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DatesResult> => {
+  return customFetch<DatesResult>(getGetGroupDatesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetGroupDatesQueryKey = (id: number) => {
+  return [`/api/groups/${id}/dates`] as const;
+};
+
+export const getGetGroupDatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getGroupDates>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGroupDates>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetGroupDatesQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getGroupDates>>> = ({
+    signal,
+  }) => getGroupDates(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getGroupDates>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetGroupDatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getGroupDates>>
+>;
+export type GetGroupDatesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get best consecutive travel date windows for the group
+ */
+
+export function useGetGroupDates<
+  TData = Awaited<ReturnType<typeof getGroupDates>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getGroupDates>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetGroupDatesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get matching results for a group

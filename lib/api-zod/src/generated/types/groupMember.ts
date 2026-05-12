@@ -13,6 +13,7 @@ export interface GroupMember {
   groupId: number;
   role: GroupMemberRole;
   hasCompletedPreferences: boolean;
+  hasSetAvailability: boolean;
   swipeCount: number;
   displayName: string;
   /** @nullable */

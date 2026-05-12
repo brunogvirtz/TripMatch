@@ -5,6 +5,7 @@ import {
   useGetGroup,
   useJoinGroup,
   useLeaveGroup,
+  useUpdateGroup,
   getGetGroupQueryKey,
   getListGroupsQueryKey,
   getGetDashboardQueryKey,
@@ -23,6 +24,8 @@ import {
   ArrowLeft,
   ChevronRight,
   LogOut,
+  Calendar,
+  Pencil,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -47,6 +50,8 @@ export default function GroupHub() {
   const [inviteCode, setInviteCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [editingDays, setEditingDays] = useState(false);
+  const [daysInput, setDaysInput] = useState("");
 
   const { data: group, isLoading, refetch } = useGetGroup(groupId, {
     query: { enabled: !!groupId, queryKey: getGetGroupQueryKey(groupId) },
@@ -54,9 +59,11 @@ export default function GroupHub() {
 
   const joinGroup = useJoinGroup();
   const leaveGroup = useLeaveGroup();
+  const updateGroup = useUpdateGroup();
 
   const isMember = group?.members?.some((m) => m.userId === user?.id);
   const me = group?.members?.find((m) => m.userId === user?.id);
+  const isCreator = me?.role === "creator";
 
   useEffect(() => {
     const search = new URLSearchParams(window.location.search);
@@ -79,6 +86,10 @@ export default function GroupHub() {
       }
     );
   }, [inviteCode, isAuthenticated, group, isMember]);
+
+  useEffect(() => {
+    if (group?.tripDays) setDaysInput(String(group.tripDays));
+  }, [group?.tripDays]);
 
   const handleCopyLink = () => {
     if (!group) return;
@@ -115,6 +126,24 @@ export default function GroupHub() {
           toast({ title: "Saliste del grupo" });
           setLeaveOpen(false);
           setLocation("/dashboard");
+        },
+      }
+    );
+  };
+
+  const handleSaveTripDays = () => {
+    const days = parseInt(daysInput, 10);
+    if (!days || days < 1 || days > 60) {
+      toast({ title: "Ingresá entre 1 y 60 días", variant: "destructive" });
+      return;
+    }
+    updateGroup.mutate(
+      { id: groupId, data: { tripDays: days } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetGroupQueryKey(groupId) });
+          toast({ title: `Duración del viaje: ${days} días` });
+          setEditingDays(false);
         },
       }
     );
@@ -177,6 +206,8 @@ export default function GroupHub() {
 
   const hasMatched = group.status === "matched" || group.status === "planning";
   const mySwipeCount = me?.swipeCount ?? 0;
+  const hasDates = !!group.tripDays;
+  const meHasAvailability = me?.hasSetAvailability ?? false;
 
   return (
     <Layout>
@@ -298,6 +329,132 @@ export default function GroupHub() {
           </Card>
         )}
 
+        {/* Trip duration — creator sets, others read */}
+        <div className="mb-4">
+          {isCreator && (editingDays || !hasDates) ? (
+            <Card className="p-5 rounded-[24px] border-2 border-border/40 bg-card mb-0">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <Calendar className="h-5 w-5 text-foreground" />
+                </div>
+                <div>
+                  <div className="font-black text-base">Duración del viaje</div>
+                  <div className="text-muted-foreground text-sm">¿Cuántos días van a viajar?</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={daysInput}
+                  onChange={(e) => setDaysInput(e.target.value)}
+                  placeholder="Ej: 7"
+                  className="flex-1 h-12 px-4 text-xl font-black text-center rounded-2xl border-2 border-border/50 bg-background focus:border-primary focus:outline-none transition-colors"
+                />
+                <span className="text-sm font-bold text-muted-foreground shrink-0">días</span>
+                <Button
+                  className="h-12 px-6 rounded-2xl font-black shrink-0"
+                  onClick={handleSaveTripDays}
+                  disabled={updateGroup.isPending}
+                >
+                  {updateGroup.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : "Guardar"}
+                </Button>
+              </div>
+              {editingDays && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full mt-2 h-8 text-xs text-muted-foreground rounded-xl"
+                  onClick={() => { setEditingDays(false); setDaysInput(String(group.tripDays ?? "")); }}
+                >
+                  Cancelar
+                </Button>
+              )}
+            </Card>
+          ) : (
+            <div className="flex items-center gap-3 px-1 mb-0">
+              <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium text-muted-foreground">
+                {hasDates
+                  ? `Duración del viaje: ${group.tripDays} día${group.tripDays !== 1 ? "s" : ""}`
+                  : "El creador aún no definió la duración del viaje"}
+              </span>
+              {isCreator && hasDates && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto text-xs h-7 rounded-lg text-muted-foreground hover:text-foreground"
+                  onClick={() => setEditingDays(true)}
+                >
+                  <Pencil className="h-3 w-3 mr-1" /> Editar
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Availability card */}
+        {!meHasAvailability ? (
+          <Card
+            className="p-5 rounded-[24px] border-2 border-border/40 bg-card mb-4 cursor-pointer active:scale-[0.99] transition-transform"
+            onClick={() => setLocation(`/groups/${group.id}/availability`)}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <Calendar className="h-5 w-5 text-foreground" />
+                </div>
+                <div>
+                  <div className="font-black text-base">Tu disponibilidad</div>
+                  <div className="text-muted-foreground text-sm">
+                    Elegí los días que podés viajar
+                  </div>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </Card>
+        ) : (
+          <div className="flex items-center gap-3 px-1 mb-4">
+            <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+            <span className="text-sm font-medium text-muted-foreground">
+              Disponibilidad configurada
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto text-xs h-7 rounded-lg text-muted-foreground hover:text-foreground"
+              onClick={() => setLocation(`/groups/${group.id}/availability`)}
+            >
+              Editar
+            </Button>
+          </div>
+        )}
+
+        {/* Best dates link */}
+        {hasDates && (
+          <Card
+            className="p-5 rounded-[24px] border-2 border-primary/20 bg-primary/5 mb-6 cursor-pointer active:scale-[0.99] transition-transform"
+            onClick={() => setLocation(`/groups/${group.id}/dates`)}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="font-black text-base">Ver fechas ideales</div>
+                  <div className="text-muted-foreground text-sm">
+                    {group.tripDays} días · calculado para todo el grupo
+                  </div>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </Card>
+        )}
+
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-black">
@@ -344,6 +501,9 @@ export default function GroupHub() {
                       {translateRole(member.role)}
                       {member.hasCompletedPreferences && (
                         <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                      )}
+                      {member.hasSetAvailability && (
+                        <Calendar className="h-3.5 w-3.5 text-primary" />
                       )}
                     </div>
                   </div>

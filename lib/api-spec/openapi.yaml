@@ -302,6 +302,67 @@ paths:
               schema:
                 $ref: "#/components/schemas/GroupMember"
 
+  /groups/{id}/availability:
+    get:
+      operationId: getMyAvailability
+      tags: [groups]
+      summary: Get current user's available dates for a group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User's available dates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyAvailabilityResult"
+    post:
+      operationId: setAvailability
+      tags: [groups]
+      summary: Set current user's available dates for a group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetAvailabilityBody"
+      responses:
+        "200":
+          description: Availability saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyAvailabilityResult"
+
+  /groups/{id}/dates:
+    get:
+      operationId: getGroupDates
+      tags: [groups]
+      summary: Get best consecutive travel date windows for the group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Best date windows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DatesResult"
+
   /groups/{id}/results:
     get:
       operationId: getGroupResults
@@ -560,6 +621,8 @@ components:
         status:
           type: string
           enum: [pending, swiping, matched, planning]
+        tripDays:
+          type: ["integer", "null"]
         memberCount:
           type: integer
         createdAt:
@@ -590,6 +653,8 @@ components:
         status:
           type: string
           enum: [pending, swiping, matched, planning]
+        tripDays:
+          type: ["integer", "null"]
         memberCount:
           type: integer
         createdAt:
@@ -630,6 +695,8 @@ components:
           enum: [creator, member]
         hasCompletedPreferences:
           type: boolean
+        hasSetAvailability:
+          type: boolean
         swipeCount:
           type: integer
         displayName:
@@ -645,6 +712,7 @@ components:
         - groupId
         - role
         - hasCompletedPreferences
+        - hasSetAvailability
         - swipeCount
         - displayName
         - joinedAt
@@ -668,6 +736,8 @@ components:
           type: ["string", "null"]
         status:
           type: ["string", "null"]
+        tripDays:
+          type: ["integer", "null"]
 
     JoinGroupBody:
       type: object
@@ -700,14 +770,95 @@ components:
           type: string
         activityLevel:
           type: string
-        availableDates:
-          type: ["string", "null"]
       required:
         - budgetMin
         - budgetMax
         - travelTypes
         - climate
         - activityLevel
+
+    MyAvailabilityResult:
+      type: object
+      properties:
+        dates:
+          type: array
+          items:
+            type: string
+      required:
+        - dates
+
+    SetAvailabilityBody:
+      type: object
+      properties:
+        dates:
+          type: array
+          items:
+            type: string
+      required:
+        - dates
+
+    MemberAvailabilityItem:
+      type: object
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: string
+        available:
+          type: boolean
+      required:
+        - userId
+        - displayName
+        - available
+
+    DateWindow:
+      type: object
+      properties:
+        startDate:
+          type: string
+        endDate:
+          type: string
+        dates:
+          type: array
+          items:
+            type: string
+        membersAvailable:
+          type: integer
+        membersWithDates:
+          type: integer
+        totalMembers:
+          type: integer
+        memberAvailability:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberAvailabilityItem"
+      required:
+        - startDate
+        - endDate
+        - dates
+        - membersAvailable
+        - membersWithDates
+        - totalMembers
+        - memberAvailability
+
+    DatesResult:
+      type: object
+      properties:
+        tripDays:
+          type: ["integer", "null"]
+        totalMembers:
+          type: integer
+        membersWithDates:
+          type: integer
+        windows:
+          type: array
+          items:
+            $ref: "#/components/schemas/DateWindow"
+      required:
+        - tripDays
+        - totalMembers
+        - membersWithDates
+        - windows
 
     Destination:
       type: object

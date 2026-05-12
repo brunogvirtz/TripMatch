@@ -76,6 +76,8 @@ export interface Group {
   description?: string | null;
   inviteCode: string;
   status: GroupStatus;
+  /** @nullable */
+  tripDays?: number | null;
   memberCount: number;
   createdAt: string;
   createdByUserId: string;
@@ -105,6 +107,7 @@ export interface GroupMember {
   groupId: number;
   role: GroupMemberRole;
   hasCompletedPreferences: boolean;
+  hasSetAvailability: boolean;
   swipeCount: number;
   displayName: string;
   /** @nullable */
@@ -142,6 +145,8 @@ export interface GroupDetail {
   description?: string | null;
   inviteCode: string;
   status: GroupDetailStatus;
+  /** @nullable */
+  tripDays?: number | null;
   memberCount: number;
   createdAt: string;
   createdByUserId: string;
@@ -162,6 +167,8 @@ export interface UpdateGroupBody {
   description?: string | null;
   /** @nullable */
   status?: string | null;
+  /** @nullable */
+  tripDays?: number | null;
 }
 
 export interface JoinGroupBody {
@@ -178,8 +185,38 @@ export interface SubmitPreferencesBody {
   travelTypes: string[];
   climate: string;
   activityLevel: string;
+}
+
+export interface MyAvailabilityResult {
+  dates: string[];
+}
+
+export interface SetAvailabilityBody {
+  dates: string[];
+}
+
+export interface MemberAvailabilityItem {
+  userId: string;
+  displayName: string;
+  available: boolean;
+}
+
+export interface DateWindow {
+  startDate: string;
+  endDate: string;
+  dates: string[];
+  membersAvailable: number;
+  membersWithDates: number;
+  totalMembers: number;
+  memberAvailability: MemberAvailabilityItem[];
+}
+
+export interface DatesResult {
   /** @nullable */
-  availableDates?: string | null;
+  tripDays: number | null;
+  totalMembers: number;
+  membersWithDates: number;
+  windows: DateWindow[];
 }
 
 export interface Destination {

@@ -29,7 +29,7 @@ export default function Swipe() {
     isLoading: loadingSwipes,
     refetch,
   } = useListUserSwipes(groupId, {
-    query: { enabled: !!groupId && isAuthenticated },
+    query: { enabled: !!groupId && isAuthenticated } as never,
   });
 
   const recordSwipe = useRecordSwipe();

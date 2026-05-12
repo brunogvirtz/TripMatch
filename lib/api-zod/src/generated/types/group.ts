@@ -14,6 +14,8 @@ export interface Group {
   description?: string | null;
   inviteCode: string;
   status: GroupStatus;
+  /** @nullable */
+  tripDays?: number | null;
   memberCount: number;
   createdAt: Date;
   createdByUserId: string;

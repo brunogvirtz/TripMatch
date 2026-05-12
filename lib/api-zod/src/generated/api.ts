@@ -118,6 +118,7 @@ export const ListGroupsResponseItem = zod.object({
   description: zod.string().nullish(),
   inviteCode: zod.string(),
   status: zod.enum(["pending", "swiping", "matched", "planning"]),
+  tripDays: zod.number().nullish(),
   memberCount: zod.number(),
   createdAt: zod.coerce.date(),
   createdByUserId: zod.string(),
@@ -145,6 +146,7 @@ export const GetGroupResponse = zod.object({
   description: zod.string().nullish(),
   inviteCode: zod.string(),
   status: zod.enum(["pending", "swiping", "matched", "planning"]),
+  tripDays: zod.number().nullish(),
   memberCount: zod.number(),
   createdAt: zod.coerce.date(),
   createdByUserId: zod.string(),
@@ -155,6 +157,7 @@ export const GetGroupResponse = zod.object({
       groupId: zod.number(),
       role: zod.enum(["creator", "member"]),
       hasCompletedPreferences: zod.boolean(),
+      hasSetAvailability: zod.boolean(),
       swipeCount: zod.number(),
       displayName: zod.string(),
       avatarUrl: zod.string().nullish(),
@@ -189,6 +192,7 @@ export const UpdateGroupBody = zod.object({
   name: zod.string().nullish(),
   description: zod.string().nullish(),
   status: zod.string().nullish(),
+  tripDays: zod.number().nullish(),
 });
 
 export const UpdateGroupResponse = zod.object({
@@ -197,6 +201,7 @@ export const UpdateGroupResponse = zod.object({
   description: zod.string().nullish(),
   inviteCode: zod.string(),
   status: zod.enum(["pending", "swiping", "matched", "planning"]),
+  tripDays: zod.number().nullish(),
   memberCount: zod.number(),
   createdAt: zod.coerce.date(),
   createdByUserId: zod.string(),
@@ -219,6 +224,7 @@ export const JoinGroupResponse = zod.object({
   description: zod.string().nullish(),
   inviteCode: zod.string(),
   status: zod.enum(["pending", "swiping", "matched", "planning"]),
+  tripDays: zod.number().nullish(),
   memberCount: zod.number(),
   createdAt: zod.coerce.date(),
   createdByUserId: zod.string(),
@@ -248,6 +254,7 @@ export const GetGroupMembersResponseItem = zod.object({
   groupId: zod.number(),
   role: zod.enum(["creator", "member"]),
   hasCompletedPreferences: zod.boolean(),
+  hasSetAvailability: zod.boolean(),
   swipeCount: zod.number(),
   displayName: zod.string(),
   avatarUrl: zod.string().nullish(),
@@ -268,7 +275,6 @@ export const SubmitPreferencesBody = zod.object({
   travelTypes: zod.array(zod.string()),
   climate: zod.string(),
   activityLevel: zod.string(),
-  availableDates: zod.string().nullish(),
 });
 
 export const SubmitPreferencesResponse = zod.object({
@@ -277,10 +283,67 @@ export const SubmitPreferencesResponse = zod.object({
   groupId: zod.number(),
   role: zod.enum(["creator", "member"]),
   hasCompletedPreferences: zod.boolean(),
+  hasSetAvailability: zod.boolean(),
   swipeCount: zod.number(),
   displayName: zod.string(),
   avatarUrl: zod.string().nullish(),
   joinedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Get current user's available dates for a group
+ */
+export const GetMyAvailabilityParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetMyAvailabilityResponse = zod.object({
+  dates: zod.array(zod.string()),
+});
+
+/**
+ * @summary Set current user's available dates for a group
+ */
+export const SetAvailabilityParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SetAvailabilityBody = zod.object({
+  dates: zod.array(zod.string()),
+});
+
+export const SetAvailabilityResponse = zod.object({
+  dates: zod.array(zod.string()),
+});
+
+/**
+ * @summary Get best consecutive travel date windows for the group
+ */
+export const GetGroupDatesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetGroupDatesResponse = zod.object({
+  tripDays: zod.number().nullable(),
+  totalMembers: zod.number(),
+  membersWithDates: zod.number(),
+  windows: zod.array(
+    zod.object({
+      startDate: zod.string(),
+      endDate: zod.string(),
+      dates: zod.array(zod.string()),
+      membersAvailable: zod.number(),
+      membersWithDates: zod.number(),
+      totalMembers: zod.number(),
+      memberAvailability: zod.array(
+        zod.object({
+          userId: zod.string(),
+          displayName: zod.string(),
+          available: zod.boolean(),
+        }),
+      ),
+    }),
+  ),
 });
 
 /**
@@ -449,6 +512,7 @@ export const GetDashboardResponse = zod.object({
       description: zod.string().nullish(),
       inviteCode: zod.string(),
       status: zod.enum(["pending", "swiping", "matched", "planning"]),
+      tripDays: zod.number().nullish(),
       memberCount: zod.number(),
       createdAt: zod.coerce.date(),
       createdByUserId: zod.string(),

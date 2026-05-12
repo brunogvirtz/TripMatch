@@ -30,11 +30,11 @@ export default function Dashboard() {
   }, [isAuthenticated, isLoading, setLocation]);
 
   const { data: dashboard, isLoading: loadingDash } = useGetDashboard({
-    query: { enabled: isAuthenticated },
+    query: { enabled: isAuthenticated } as never,
   });
 
   const { data: groups, isLoading: loadingGroups } = useListGroups({
-    query: { enabled: isAuthenticated },
+    query: { enabled: isAuthenticated } as never,
   });
 
   if (isLoading || !isAuthenticated) return null;

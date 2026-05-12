@@ -24,6 +24,21 @@ function requireAuth(req: Request, res: Response): string | null {
   return req.user.id;
 }
 
+function formatMember(member: typeof groupMembersTable.$inferSelect, user: typeof usersTable.$inferSelect | null, swipeCount: number) {
+  return {
+    id: member.id,
+    userId: member.userId,
+    groupId: member.groupId,
+    role: member.role,
+    hasCompletedPreferences: member.hasCompletedPreferences === "true",
+    hasSetAvailability: (member.availableDates?.length ?? 0) > 0,
+    swipeCount,
+    displayName: buildDisplayName(user),
+    avatarUrl: user?.profileImageUrl ?? null,
+    joinedAt: member.joinedAt,
+  };
+}
+
 router.get("/groups", async (req: Request, res: Response): Promise<void> => {
   const userId = requireAuth(req, res);
   if (!userId) return;
@@ -124,17 +139,9 @@ router.get("/groups/:id", async (req: Request, res: Response): Promise<void> => 
 
   const swipeMap = new Map(swipeCounts.map((s) => [s.userId, s.cnt]));
 
-  const formattedMembers = members.map(({ member, user }) => ({
-    id: member.id,
-    userId: member.userId,
-    groupId: member.groupId,
-    role: member.role,
-    hasCompletedPreferences: member.hasCompletedPreferences === "true",
-    swipeCount: swipeMap.get(member.userId) ?? 0,
-    displayName: buildDisplayName(user),
-    avatarUrl: user?.profileImageUrl ?? null,
-    joinedAt: member.joinedAt,
-  }));
+  const formattedMembers = members.map(({ member, user }) =>
+    formatMember(member, user, swipeMap.get(member.userId) ?? 0)
+  );
 
   const topDestinations = await computeGroupScores(id);
 
@@ -144,6 +151,7 @@ router.get("/groups/:id", async (req: Request, res: Response): Promise<void> => 
     description: group.description ?? null,
     inviteCode: group.inviteCode,
     status: group.status,
+    tripDays: group.tripDays ?? null,
     memberCount: members.length,
     createdAt: group.createdAt,
     createdByUserId: group.createdByUserId,
@@ -159,11 +167,21 @@ router.patch("/groups/:id", async (req: Request, res: Response): Promise<void> =
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
 
-  const { name, description, status } = req.body;
+  const { name, description, status, tripDays } = req.body;
   const updates: Record<string, unknown> = {};
   if (name != null) updates.name = name;
   if (description !== undefined) updates.description = description;
   if (status != null) updates.status = status;
+
+  if (tripDays !== undefined) {
+    const [member] = await db
+      .select()
+      .from(groupMembersTable)
+      .where(and(eq(groupMembersTable.groupId, id), eq(groupMembersTable.userId, userId)));
+    if (member?.role === "creator") {
+      updates.tripDays = tripDays != null ? parseInt(String(tripDays), 10) : null;
+    }
+  }
 
   const [group] = await db
     .update(groupsTable)
@@ -269,17 +287,9 @@ router.get("/groups/:id/members", async (req: Request, res: Response): Promise<v
   const swipeMap = new Map(swipeCounts.map((s) => [s.userId, s.cnt]));
 
   res.json(
-    members.map(({ member, user }) => ({
-      id: member.id,
-      userId: member.userId,
-      groupId: member.groupId,
-      role: member.role,
-      hasCompletedPreferences: member.hasCompletedPreferences === "true",
-      swipeCount: swipeMap.get(member.userId) ?? 0,
-      displayName: buildDisplayName(user),
-      avatarUrl: user?.profileImageUrl ?? null,
-      joinedAt: member.joinedAt,
-    }))
+    members.map(({ member, user }) =>
+      formatMember(member, user, swipeMap.get(member.userId) ?? 0)
+    )
   );
 });
 
@@ -289,7 +299,7 @@ router.post("/groups/:id/preferences", async (req: Request, res: Response): Prom
 
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
-  const { budgetMin, budgetMax, travelTypes, climate, activityLevel, availableDates } = req.body;
+  const { budgetMin, budgetMax, travelTypes, climate, activityLevel } = req.body;
 
   const [member] = await db
     .update(groupMembersTable)
@@ -300,7 +310,6 @@ router.post("/groups/:id/preferences", async (req: Request, res: Response): Prom
       travelTypes: travelTypes ?? [],
       climate: climate ?? null,
       activityLevel: activityLevel ?? null,
-      availableDates: availableDates ?? null,
     })
     .where(
       and(eq(groupMembersTable.groupId, id), eq(groupMembersTable.userId, userId))
@@ -319,17 +328,160 @@ router.post("/groups/:id/preferences", async (req: Request, res: Response): Prom
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
 
-  res.json({
-    id: member.id,
-    userId: member.userId,
-    groupId: member.groupId,
-    role: member.role,
-    hasCompletedPreferences: true,
-    swipeCount: swipeCounts[0]?.cnt ?? 0,
-    displayName: buildDisplayName(user),
-    avatarUrl: user?.profileImageUrl ?? null,
-    joinedAt: member.joinedAt,
+  res.json(formatMember(member, user, swipeCounts[0]?.cnt ?? 0));
+});
+
+router.get("/groups/:id/availability", async (req: Request, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+
+  const [member] = await db
+    .select()
+    .from(groupMembersTable)
+    .where(and(eq(groupMembersTable.groupId, id), eq(groupMembersTable.userId, userId)));
+
+  if (!member) {
+    res.status(404).json({ error: "Member not found in group" });
+    return;
+  }
+
+  res.json({ dates: member.availableDates ?? [] });
+});
+
+router.post("/groups/:id/availability", async (req: Request, res: Response): Promise<void> => {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
+
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+
+  const { dates } = req.body;
+  if (!Array.isArray(dates)) {
+    res.status(400).json({ error: "dates must be an array" });
+    return;
+  }
+
+  const validDates = (dates as unknown[])
+    .filter((d): d is string => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d));
+
+  const [member] = await db
+    .update(groupMembersTable)
+    .set({ availableDates: validDates })
+    .where(and(eq(groupMembersTable.groupId, id), eq(groupMembersTable.userId, userId)))
+    .returning();
+
+  if (!member) {
+    res.status(404).json({ error: "Member not found in group" });
+    return;
+  }
+
+  res.json({ dates: member.availableDates ?? [] });
+});
+
+router.get("/groups/:id/dates", async (req: Request, res: Response): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+
+  const [group] = await db.select().from(groupsTable).where(eq(groupsTable.id, id));
+  if (!group) {
+    res.status(404).json({ error: "Group not found" });
+    return;
+  }
+
+  const tripDays = group.tripDays;
+
+  const members = await db
+    .select({ member: groupMembersTable, user: usersTable })
+    .from(groupMembersTable)
+    .leftJoin(usersTable, eq(groupMembersTable.userId, usersTable.id))
+    .where(eq(groupMembersTable.groupId, id));
+
+  const totalMembers = members.length;
+  const membersWithDates = members.filter((m) => (m.member.availableDates?.length ?? 0) > 0).length;
+
+  if (!tripDays || tripDays <= 0) {
+    res.json({ tripDays: tripDays ?? null, totalMembers, membersWithDates, windows: [] });
+    return;
+  }
+
+  type MemberInfo = { userId: string; displayName: string; dates: Set<string> };
+  const memberMap = new Map<string, MemberInfo>();
+
+  for (const { member, user } of members) {
+    if ((member.availableDates?.length ?? 0) > 0) {
+      memberMap.set(member.userId, {
+        userId: member.userId,
+        displayName: buildDisplayName(user),
+        dates: new Set(member.availableDates ?? []),
+      });
+    }
+  }
+
+  const allDates = new Set<string>();
+  for (const info of memberMap.values()) {
+    for (const d of info.dates) allDates.add(d);
+  }
+
+  if (allDates.size === 0) {
+    res.json({ tripDays, totalMembers, membersWithDates, windows: [] });
+    return;
+  }
+
+  type Window = {
+    startDate: string;
+    endDate: string;
+    dates: string[];
+    membersAvailable: number;
+    membersWithDates: number;
+    totalMembers: number;
+    memberAvailability: { userId: string; displayName: string; available: boolean }[];
+  };
+
+  const windows: Window[] = [];
+  const seen = new Set<string>();
+
+  for (const startStr of allDates) {
+    if (seen.has(startStr)) continue;
+    seen.add(startStr);
+
+    const startDate = new Date(startStr + "T00:00:00Z");
+    const windowDates: string[] = [];
+
+    for (let i = 0; i < tripDays; i++) {
+      const d = new Date(startDate);
+      d.setUTCDate(d.getUTCDate() + i);
+      windowDates.push(d.toISOString().split("T")[0]);
+    }
+
+    let membersAvailable = 0;
+    const memberAvailability: { userId: string; displayName: string; available: boolean }[] = [];
+
+    for (const info of memberMap.values()) {
+      const canGo = windowDates.every((d) => info.dates.has(d));
+      if (canGo) membersAvailable++;
+      memberAvailability.push({ userId: info.userId, displayName: info.displayName, available: canGo });
+    }
+
+    windows.push({
+      startDate: windowDates[0],
+      endDate: windowDates[windowDates.length - 1],
+      dates: windowDates,
+      membersAvailable,
+      membersWithDates,
+      totalMembers,
+      memberAvailability,
+    });
+  }
+
+  windows.sort((a, b) => {
+    if (b.membersAvailable !== a.membersAvailable) return b.membersAvailable - a.membersAvailable;
+    return a.startDate.localeCompare(b.startDate);
   });
+
+  res.json({ tripDays, totalMembers, membersWithDates, windows: windows.slice(0, 20) });
 });
 
 router.get("/groups/:id/results", async (req: Request, res: Response): Promise<void> => {
@@ -479,6 +631,7 @@ function formatGroup(group: typeof groupsTable.$inferSelect, memberCount: number
     description: group.description ?? null,
     inviteCode: group.inviteCode,
     status: group.status,
+    tripDays: group.tripDays ?? null,
     memberCount,
     createdAt: group.createdAt,
     createdByUserId: group.createdByUserId,

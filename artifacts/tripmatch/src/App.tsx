@@ -13,6 +13,8 @@ import Preferences from "@/pages/groups/preferences";
 import Swipe from "@/pages/groups/swipe";
 import Results from "@/pages/groups/results";
 import Plan from "@/pages/groups/plan";
+import Availability from "@/pages/groups/availability";
+import Dates from "@/pages/groups/dates";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +30,8 @@ function Router() {
       <Route path="/groups/:id/swipe" component={Swipe} />
       <Route path="/groups/:id/results" component={Results} />
       <Route path="/groups/:id/plan" component={Plan} />
+      <Route path="/groups/:id/availability" component={Availability} />
+      <Route path="/groups/:id/dates" component={Dates} />
       <Route component={NotFound} />
     </Switch>
   );

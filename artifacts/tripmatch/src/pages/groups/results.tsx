@@ -12,11 +12,11 @@ export default function Results() {
   const [, setLocation] = useLocation();
 
   const { data: results, isLoading } = useGetGroupResults(groupId, {
-    query: { enabled: !!groupId },
+    query: { enabled: !!groupId } as never,
   });
 
   const { data: group } = useGetGroup(groupId, {
-    query: { enabled: !!groupId },
+    query: { enabled: !!groupId } as never,
   });
 
   if (isLoading || !results)

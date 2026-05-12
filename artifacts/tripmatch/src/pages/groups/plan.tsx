@@ -11,11 +11,11 @@ export default function Plan() {
   const [, setLocation] = useLocation();
 
   const { data: results, isLoading: loadingResults } = useGetGroupResults(groupId, {
-    query: { enabled: !!groupId },
+    query: { enabled: !!groupId } as never,
   });
 
   const { data: group, isLoading: loadingGroup } = useGetGroup(groupId, {
-    query: { enabled: !!groupId },
+    query: { enabled: !!groupId } as never,
   });
 
   if (loadingResults || loadingGroup || !results || !group)

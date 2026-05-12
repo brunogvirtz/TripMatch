@@ -9,6 +9,7 @@ export const groupsTable = pgTable("groups", {
   description: text("description"),
   inviteCode: text("invite_code").notNull().unique(),
   status: text("status").notNull().default("pending"),
+  tripDays: integer("trip_days"),
   createdByUserId: varchar("created_by_user_id").notNull().references(() => usersTable.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
@@ -25,7 +26,7 @@ export const groupMembersTable = pgTable("group_members", {
   travelTypes: text("travel_types").array().default([]),
   climate: text("climate"),
   activityLevel: text("activity_level"),
-  availableDates: text("available_dates"),
+  availableDates: text("available_dates").array().default([]),
   joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

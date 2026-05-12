@@ -13,4 +13,6 @@ export interface UpdateGroupBody {
   description?: string | null;
   /** @nullable */
   status?: string | null;
+  /** @nullable */
+  tripDays?: number | null;
 }
